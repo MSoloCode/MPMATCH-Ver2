@@ -8,7 +8,7 @@ import { db } from "./db";
 export interface WriteAuditLogParams {
   actorId: number | null;
   actorRole: string;
-  action: "CREATE" | "UPDATE" | "DELETE" | "READ_SENSITIVE";
+  action: "CREATE" | "READ" | "UPDATE" | "DELETE" | "READ_SENSITIVE";
   resource: string;
   resourceId: number;
   changesSummary?: string | Record<string, any> | null;

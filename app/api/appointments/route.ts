@@ -6,6 +6,7 @@ import {
   assertValidTenantScope,
   UnauthorizedError,
   ForbiddenError,
+  ScopedUserPayload,
 } from '@/lib/rbac';
 import { writeAuditLog, extractAuditContext } from '@/lib/audit';
 
@@ -151,7 +152,7 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     if (user.role !== 'COMMUNITY_USER') {
       try {
-        assertValidTenantScope(user);
+        assertValidTenantScope(user as ScopedUserPayload);
       } catch (error) {
         if (error instanceof ForbiddenError) {
           return NextResponse.json(
@@ -325,7 +326,7 @@ export async function GET(request: NextRequest) {
       whereClause.motherId = user.motherId;
     } else {
       // Other roles: Apply tenant scoping
-      whereClause = getTenantScopingFilter(user);
+      whereClause = getTenantScopingFilter(user as ScopedUserPayload);
     }
 
     // Add additional filters
@@ -431,8 +432,7 @@ export async function GET(request: NextRequest) {
       actorId: user.userId || user.motherId || null,
       actorRole: user.role,
       action: 'READ',
-      resource: 'appointment',
-      changesSummary: {
+      resource: 'appointment',      resourceId: 0,      changesSummary: {
         filters: {
           status: status || 'all',
           motherId: motherId || 'all',

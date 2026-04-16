@@ -6,6 +6,7 @@ import {
   assertValidTenantScope,
   UnauthorizedError,
   ForbiddenError,
+  ScopedUserPayload,
 } from '@/lib/rbac';
 import { writeAuditLog, extractAuditContext } from '@/lib/audit';
 
@@ -141,7 +142,7 @@ export async function GET(request: NextRequest) {
     // 3. VALIDATE TENANT SCOPE
     // ========================================================================
     try {
-      assertValidTenantScope(user);
+      assertValidTenantScope(user as ScopedUserPayload);
     } catch (error) {
       if (error instanceof ForbiddenError) {
         return NextResponse.json(
@@ -271,7 +272,7 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     // 5. BUILD WHERE CLAUSE WITH TENANT SCOPING
     // ========================================================================
-    const scopeFilter = getTenantScopingFilter(user);
+    const scopeFilter = getTenantScopingFilter(user as ScopedUserPayload);
 
     const whereClause: any = {
       ...scopeFilter,
@@ -356,6 +357,7 @@ export async function GET(request: NextRequest) {
       actorRole: user.role,
       action: 'READ',
       resource: 'ancvisit',
+      resourceId: 0,
       changesSummary: {
         filters: {
           visitType: visitType || 'all',

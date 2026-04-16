@@ -9,6 +9,7 @@ interface MothersInfoDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onViewFullProfile: (mother: Mother) => void;
+  onOpenPregnancy?: (mother: Mother) => void;
 }
 
 export function MothersInfoDrawer({
@@ -16,6 +17,7 @@ export function MothersInfoDrawer({
   isOpen,
   onClose,
   onViewFullProfile,
+  onOpenPregnancy,
 }: MothersInfoDrawerProps) {
   if (!mother) return null;
 
@@ -158,8 +160,14 @@ export function MothersInfoDrawer({
             </div>
           </section>
 
-          {/* View Full Profile Button */}
-          <div className="pt-4 border-t border-gray-200">
+          {/* Action Buttons */}
+          <div className="pt-4 border-t border-gray-200 space-y-3">
+            <button
+              onClick={() => onOpenPregnancy?.(mother)}
+              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+            >
+              Open New Pregnancy
+            </button>
             <button
               onClick={() => onViewFullProfile(mother)}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"

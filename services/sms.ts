@@ -75,7 +75,7 @@ interface GatewayAttemptResult {
  * @returns Formatted phone number with +256 prefix
  * @throws Error if phone number is invalid
  */
-function formatPhoneNumber(phoneNumber: string): string {
+export function formatPhoneNumber(phoneNumber: string): string {
   // Remove whitespace, dashes, and parentheses
   let cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
 

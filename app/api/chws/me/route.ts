@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       where: { id: userId },
       select: {
         id: true,
-        fullName: true,
+        name: true,
         phone: true,
         role: true,
         isActive: true,
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
             name: true,
           },
         },
-        facility: {
+        hospital: {
           select: {
             name: true,
           },
@@ -137,11 +137,11 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           userId: user.id,
-          fullName: user.fullName,
+          fullName: user.name,
           phone: user.phone,
           role: user.role,
           district: user.district?.name || null,
-          facility: user.facility?.name || null,
+          facility: user.hospital?.name || null,
           isActive: user.isActive,
         },
       },

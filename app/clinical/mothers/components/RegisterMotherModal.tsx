@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { TextInput, PhoneInput, SelectDropdown, Checkbox } from '@/components/FormInputs';
+import { TextInput, PhoneInput, SelectDropdown, Checkbox, DateInput } from '@/components/FormInputs';
 
 interface RegisterMotherModalProps {
   isOpen: boolean;
@@ -14,17 +14,39 @@ interface RegisterMotherModalProps {
 interface RegisterFormData {
   fullName: string;
   phone: string;
-  districtId: string;
+  dob: string;
   village: string;
+  districtId: string;
+  facilityId: string;
+  chwId: string;
   consent: boolean;
 }
 
 interface RegisterFormErrors {
   fullName?: string;
   phone?: string;
+  dob?: string;
+  village?: string;
   districtId?: string;
+  facilityId?: string;
+  chwId?: string;
   consent?: string;
   general?: string;
+}
+
+interface District {
+  id: number;
+  name: string;
+}
+
+interface Facility {
+  id: number;
+  name: string;
+}
+
+interface CHW {
+  id: number;
+  name: string;
 }
 
 export function RegisterMotherModal({
@@ -36,19 +58,34 @@ export function RegisterMotherModal({
   const [formData, setFormData] = useState<RegisterFormData>({
     fullName: '',
     phone: '',
-    districtId: '',
+    dob: '',
     village: '',
+    districtId: '',
+    facilityId: '',
+    chwId: '',
     consent: false,
   });
+
   const [errors, setErrors] = useState<RegisterFormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [districts, setDistricts] = useState<any[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch districts on open
+  // Data states for dropdowns
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [chws, setChws] = useState<CHW[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingFacilities, setLoadingFacilities] = useState(false);
+  const [loadingChws, setLoadingChws] = useState(false);
+
+  // Real-time phone validation state
+  const [phoneError, setPhoneError] = useState('');
+
+  // Fetch districts on modal open
   useEffect(() => {
     const fetchDistricts = async () => {
       try {
+        setLoadingDistricts(true);
         const response = await fetch('/api/districts');
         const data = await response.json();
         if (data.success) {
@@ -56,6 +93,8 @@ export function RegisterMotherModal({
         }
       } catch (error) {
         console.error('Failed to fetch districts:', error);
+      } finally {
+        setLoadingDistricts(false);
       }
     };
 
@@ -64,9 +103,76 @@ export function RegisterMotherModal({
     }
   }, [isOpen]);
 
+  // Fetch facilities when district is selected
+  useEffect(() => {
+    const fetchFacilities = async () => {
+      if (!formData.districtId) {
+        setFacilities([]);
+        return;
+      }
+
+      try {
+        setLoadingFacilities(true);
+        const response = await fetch(`/api/facilities?district=${formData.districtId}`);
+        const data = await response.json();
+        if (data.success) {
+          setFacilities(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch facilities:', error);
+      } finally {
+        setLoadingFacilities(false);
+      }
+    };
+
+    fetchFacilities();
+  }, [formData.districtId]);
+
+  // Fetch CHWs when district is selected
+  useEffect(() => {
+    const fetchChws = async () => {
+      if (!formData.districtId) {
+        setChws([]);
+        return;
+      }
+
+      try {
+        setLoadingChws(true);
+        const response = await fetch(`/api/chws?role=CHW&district=${formData.districtId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        if (data.success) {
+          setChws(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch CHWs:', error);
+      } finally {
+        setLoadingChws(false);
+      }
+    };
+
+    fetchChws();
+  }, [formData.districtId, token]);
+
+  // Real-time phone validation
   const validatePhone = (phone: string): boolean => {
     const phoneRegex = /^(07\d{6}|\+256[0-9]{9})$/;
     return phoneRegex.test(phone.trim());
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const phone = e.target.value;
+    setFormData({ ...formData, phone });
+
+    // Real-time validation
+    if (phone.trim().length > 0 && !validatePhone(phone)) {
+      setPhoneError('Invalid format (07XXXXXX or +256XXXXXXXXX)');
+    } else {
+      setPhoneError('');
+    }
   };
 
   const validateForm = (): boolean => {
@@ -77,11 +183,19 @@ export function RegisterMotherModal({
     }
 
     if (!validatePhone(formData.phone)) {
-      newErrors.phone = 'Invalid phone number format (07XXXXXX or +256XXXXXXXXX)';
+      newErrors.phone = 'Invalid phone format (07XXXXXX or +256XXXXXXXXX)';
     }
 
     if (!formData.districtId) {
       newErrors.districtId = 'District is required';
+    }
+
+    if (!formData.facilityId) {
+      newErrors.facilityId = 'Facility is required';
+    }
+
+    if (!formData.chwId) {
+      newErrors.chwId = 'Assigned CHW is required';
     }
 
     if (!formData.consent) {
@@ -101,23 +215,32 @@ export function RegisterMotherModal({
       setIsLoading(true);
       setErrors({});
 
-      const response = await fetch('/api/mothers/register', {
+      const response = await fetch('/api/mothers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           fullName: formData.fullName.trim(),
           phone: formData.phone.trim(),
-          districtId: Number(formData.districtId),
+          dob: formData.dob || null,
           village: formData.village.trim() || null,
+          districtId: Number(formData.districtId),
+          facilityId: Number(formData.facilityId),
+          chwId: Number(formData.chwId),
+          consentAccepted: true,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to register mother');
+        // Handle field-level errors from API
+        if (data.error) {
+          setErrors({ general: data.error });
+        }
+        return;
       }
 
       setSuccessMessage('Mother registered successfully!');
@@ -126,8 +249,11 @@ export function RegisterMotherModal({
       setFormData({
         fullName: '',
         phone: '',
-        districtId: '',
+        dob: '',
         village: '',
+        districtId: '',
+        facilityId: '',
+        chwId: '',
         consent: false,
       });
 
@@ -207,24 +333,21 @@ export function RegisterMotherModal({
               <PhoneInput
                 label="Phone Number"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                error={!!errors.phone}
-                helperText={errors.phone}
+                onChange={handlePhoneChange}
+                error={!!errors.phone || !!phoneError}
+                helperText={errors.phone || phoneError}
                 required
               />
             </div>
 
-            {/* District */}
+            {/* Date of Birth */}
             <div>
-              <SelectDropdown
-                label="District"
-                value={formData.districtId}
-                onChange={(e) => setFormData({ ...formData, districtId: e.target.value })}
-                options={districts.map((d) => ({ value: d.id.toString(), label: d.name }))}
-                error={!!errors.districtId}
-                helperText={errors.districtId}
-                placeholder="Select a district"
-                required
+              <DateInput
+                label="Date of Birth"
+                value={formData.dob}
+                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                error={!!errors.dob}
+                helperText={errors.dob}
               />
             </div>
 
@@ -235,6 +358,53 @@ export function RegisterMotherModal({
                 value={formData.village}
                 onChange={(e) => setFormData({ ...formData, village: e.target.value })}
                 placeholder="Enter village (optional)"
+              />
+            </div>
+
+            {/* District */}
+            <div>
+              <SelectDropdown
+                label="District"
+                value={formData.districtId}
+                onChange={(e) => {
+                  setFormData({ ...formData, districtId: e.target.value, facilityId: '', chwId: '' });
+                }}
+                options={districts.map((d) => ({ value: d.id.toString(), label: d.name }))}
+                error={!!errors.districtId}
+                helperText={errors.districtId}
+                placeholder="Select a district"
+                required
+                disabled={loadingDistricts}
+              />
+            </div>
+
+            {/* Facility - only enabled after district selected */}
+            <div>
+              <SelectDropdown
+                label="Facility"
+                value={formData.facilityId}
+                onChange={(e) => setFormData({ ...formData, facilityId: e.target.value })}
+                options={facilities.map((f) => ({ value: f.id.toString(), label: f.name }))}
+                error={!!errors.facilityId}
+                helperText={errors.facilityId}
+                placeholder={formData.districtId ? 'Select a facility' : 'Select a district first'}
+                required
+                disabled={!formData.districtId || loadingFacilities}
+              />
+            </div>
+
+            {/* Assigned CHW - only enabled after district selected */}
+            <div>
+              <SelectDropdown
+                label="Assigned CHW"
+                value={formData.chwId}
+                onChange={(e) => setFormData({ ...formData, chwId: e.target.value })}
+                options={chws.map((c) => ({ value: c.id.toString(), label: c.name }))}
+                error={!!errors.chwId}
+                helperText={errors.chwId}
+                placeholder={formData.districtId ? 'Select a CHW' : 'Select a district first'}
+                required
+                disabled={!formData.districtId || loadingChws}
               />
             </div>
 

@@ -356,6 +356,7 @@ export async function GET(request: NextRequest) {
       actorRole: user.role,
       action: 'READ',
       resource: 'alert',
+      resourceId: 0,
       changesSummary: {
         filters: {
           type: type || 'all',
@@ -553,12 +554,12 @@ export async function POST(request: NextRequest) {
         pregnancyId: pregnancyId ? Number(pregnancyId) : null,
         ancVisitId: ancVisitId ? Number(ancVisitId) : null,
         initiatedById: user.userId,
-        metadata: description
+        metadata: JSON.stringify(description
           ? {
               description: description.trim().substring(0, 500),
               createdVia: 'CLINICAL_STAFF',
             }
-          : { createdVia: 'CLINICAL_STAFF' },
+          : { createdVia: 'CLINICAL_STAFF' }),
       },
     });
 
@@ -571,7 +572,7 @@ export async function POST(request: NextRequest) {
       actorRole: user.role,
       action: 'CREATE',
       resource: 'alert',
-      resourceId: alert.id.toString(),
+      resourceId: typeof alert.id === 'number' ? alert.id : parseInt(alert.id as unknown as string, 10),
       changesSummary: {
         motherId,
         type,

@@ -211,3 +211,45 @@ export const Checkbox = React.forwardRef<
 ));
 
 Checkbox.displayName = 'Checkbox';
+
+/**
+ * Date Input Component
+ * Specialized input for date selection
+ */
+export const DateInput = React.forwardRef<
+  HTMLInputElement,
+  InputHTMLAttributes<HTMLInputElement> & {
+    label?: string;
+    error?: string;
+    helperText?: string;
+  }
+>(({ label, error, helperText, className = '', ...props }, ref) => (
+  <div className="flex flex-col gap-2">
+    {label && (
+      <label className="text-sm font-medium text-neutral-900">
+        {label}
+        {props.required && <span className="text-red-600 ml-1">*</span>}
+      </label>
+    )}
+    <input
+      ref={ref}
+      type="date"
+      className={`
+        px-3 py-2 bg-white rounded-lg
+        border border-neutral-300
+        text-neutral-900 text-sm
+        placeholder-neutral-500
+        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+        disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed
+        transition-colors
+        ${error ? 'border-red-600 focus:ring-red-600' : ''}
+        ${className}
+      `}
+      {...props}
+    />
+    {error && <span className="text-sm text-red-600">{error}</span>}
+    {helperText && !error && <span className="text-sm text-neutral-600">{helperText}</span>}
+  </div>
+));
+
+DateInput.displayName = 'DateInput';

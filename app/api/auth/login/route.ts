@@ -243,6 +243,7 @@ export async function POST(request: NextRequest) {
       actorRole: user.role,
       action: 'CREATE',
       resource: 'Session',
+      resourceId: user.id,
       ipAddress: auditContext.ipAddress,
       userAgent: auditContext.userAgent,
     }).catch((error) => {

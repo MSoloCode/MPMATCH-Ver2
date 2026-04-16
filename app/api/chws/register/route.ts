@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
     // ========================================================================
     // 6. CHECK IF PHONE ALREADY REGISTERED
     // ========================================================================
-    const existingUser = await db.user.findUnique({
+    const existingUser = await db.user.findFirst({
       where: { phone: normalizedPhone },
       select: { id: true },
     });
@@ -258,22 +258,18 @@ export async function POST(request: NextRequest) {
 
     const user = await db.user.create({
       data: {
-        fullName: trimmedFullName,
+        name: trimmedFullName,
+        username: normalizedPhone,
+        passwordHash: tempPassword,
         phone: normalizedPhone,
-        email: null, // Email optional for CHW
-        password: tempPassword,
         role: 'CHW',
         districtId: districtIdNumber,
-        facilityId: facilityIdNumber,
+        hospitalId: facilityIdNumber,
         isActive: true,
-        lastLogin: null,
-        consentAccepted: true,
-        consentDate: currentTime,
-        consentIp: ipAddress,
       },
       select: {
         id: true,
-        fullName: true,
+        name: true,
         phone: true,
         role: true,
       },
@@ -299,10 +295,8 @@ export async function POST(request: NextRequest) {
         data: {
           userId: user.id,
           type: 'DATA_COLLECTION',
-          consentGiven: true,
-          consentDate: currentTime,
-          consentIp: ipAddress,
-          expiryDate: new Date(currentTime.getTime() + 2 * 365 * 24 * 60 * 60 * 1000), // 2 years
+          acceptedAt: new Date(),
+          ipAddress: ipAddress,
         },
       });
     } catch (error) {
@@ -348,7 +342,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           token: token,
           phone: user.phone,
-          fullName: user.fullName,
+          fullName: user.name,
           role: user.role,
         },
       },

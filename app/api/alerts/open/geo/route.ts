@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     // 1. EXTRACT AND VALIDATE AUTHORIZATION
     // ========================================================================
-    let user: ScopedUserPayload;
+    let user: Record<string, any>;
     try {
       user = extractUser(request);
     } catch (error) {
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     // 2. VALIDATE TENANT SCOPE
     // ========================================================================
     try {
-      assertValidTenantScope(user);
+      assertValidTenantScope(user as ScopedUserPayload);
     } catch (error) {
       if (error instanceof ForbiddenError) {
         return NextResponse.json(
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     // 4. GET TENANT SCOPING FILTER
     // ========================================================================
-    const scopeFilter = getTenantScopingFilter(user);
+    const scopeFilter = getTenantScopingFilter(user as ScopedUserPayload);
 
     // ========================================================================
     // 5. FETCH OPEN ALERTS WITH GEO COORDINATES
@@ -197,11 +197,12 @@ export async function GET(request: NextRequest) {
     // 7. WRITE AUDIT LOG
     // ========================================================================
     await writeAuditLog({
-      userId: user.id,
+      actorId: user.id || null,
+      actorRole: user.role,
       action: 'READ_SENSITIVE',
       resource: 'alert',
-      resourceId: null,
-      details: `Retrieved ${formattedAlerts.length} open alerts with geo coordinates`,
+      resourceId: 0,
+      changesSummary: `Retrieved ${formattedAlerts.length} open alerts with geo coordinates`,
       ipAddress: extractAuditContext(request).ipAddress,
       userAgent: extractAuditContext(request).userAgent,
     });

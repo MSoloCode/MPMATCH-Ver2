@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { RoleGuard } from '@/components/RoleGuard';
+import OpenPregnancyModal from '@/components/OpenPregnancyModal';
 import { InstructionBanner } from './components/InstructionBanner';
 import { MothersFilters } from './components/MothersFilters';
 import { MothersTable } from './components/MothersTable';
@@ -24,6 +25,7 @@ export default function MothersPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [pregnancyModalOpen, setPregnancyModalOpen] = useState(false);
   
   // Delete state
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -153,6 +155,18 @@ export default function MothersPage() {
     setInfoDrawerOpen(false);
   };
 
+  const handleOpenPregnancy = (mother: Mother) => {
+    setSelectedMother(mother);
+    setPregnancyModalOpen(true);
+    setInfoDrawerOpen(false);
+  };
+
+  const handlePregnancySuccess = (pregnancyId: number) => {
+    setPregnancyModalOpen(false);
+    setSelectedMother(null);
+    setToast({ message: 'Pregnancy created successfully', type: 'success' });
+  };
+
   return (
     <RoleGuard requiredRole="DOCTOR|NURSE|MIDWIFE">
       <div className="space-y-6">
@@ -231,6 +245,7 @@ export default function MothersPage() {
         isOpen={infoDrawerOpen}
         onClose={() => setInfoDrawerOpen(false)}
         onViewFullProfile={handleViewFullProfile}
+        onOpenPregnancy={handleOpenPregnancy}
       />
 
       <SendAlertModal
@@ -262,6 +277,13 @@ export default function MothersPage() {
         onClose={() => setRegisterModalOpen(false)}
         onSuccess={handleRegisterSuccess}
         token={token}
+      />
+
+      <OpenPregnancyModal
+        isOpen={pregnancyModalOpen}
+        onClose={() => setPregnancyModalOpen(false)}
+        motherId={selectedMother?.id}
+        onSuccess={handlePregnancySuccess}
       />
     </RoleGuard>
   );

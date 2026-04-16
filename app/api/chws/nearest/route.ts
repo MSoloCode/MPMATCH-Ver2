@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       where: {
         role: 'CHW',
         isActive: true,
-        facilityId: { not: null }, // Must have a facility assigned
+        hospitalId: { not: null }, // Must have a hospital assigned
         district: {
           isNot: null, // Must have a district
         },
@@ -117,13 +117,17 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         phone: true,
-        facilityId: true,
-        facility: {
+        hospitalId: true,
+        hospital: {
           select: {
             id: true,
             name: true,
-            lat: true,
-            lng: true,
+            facility: {
+              select: {
+                lat: true,
+                lng: true,
+              },
+            },
           },
         },
       },
@@ -134,17 +138,17 @@ export async function GET(request: NextRequest) {
     // 5. CALCULATE DISTANCES AND SORT
     // ========================================================================
     const chwsWithDistance = chws
-      .filter((chw) => chw.facility && chw.facility.lat && chw.facility.lng) // Must have location
+      .filter((chw) => chw.hospital?.facility && chw.hospital.facility.lat && chw.hospital.facility.lng) // Must have location
       .map((chw) => ({
         id: chw.id,
         name: chw.name,
         phone: chw.phone,
-        facilityName: chw.facility!.name,
+        facilityName: chw.hospital!.name,
         distanceKm: haversineDistanceKm(
           userLat,
           userLng,
-          chw.facility!.lat!,
-          chw.facility!.lng!
+          chw.hospital!.facility!.lat!,
+          chw.hospital!.facility!.lng!
         ),
       }))
       .sort((a, b) => a.distanceKm - b.distanceKm)

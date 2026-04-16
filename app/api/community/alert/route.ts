@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
         facility: true,
         chw: {
           include: {
-            facility: true,
+            hospital: true,
           },
         },
       },
@@ -192,8 +192,8 @@ export async function POST(request: NextRequest) {
     // Use mother's assigned CHW's facility coordinates if available,
     // otherwise use mother's own facility coordinates
     let referenceFacility = mother.facility;
-    if (mother.chw && mother.chw.facility) {
-      referenceFacility = mother.chw.facility;
+    if (mother.chw && mother.chw.hospital?.facility) {
+      referenceFacility = mother.chw.hospital.facility;
     }
 
     if (!referenceFacility || !referenceFacility.lat || !referenceFacility.lng) {
