@@ -1,0 +1,618 @@
+// MPMATCH E-ANC System Prisma Schema
+// Complete antenatal care management system with mother tracking, pregnancy management, and clinical operations
+// Note: SQLite doesn't support native enums, so enum values are stored as strings and documented in comments
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUM DOCUMENTATION (for reference - stored as VARCHAR/TEXT in SQLite)
+// ============================================================================
+// Role: SYSTEM_ADMIN | HOSPITAL_ADMIN | ORG_ADMIN | DHO | DOCTOR | MIDWIFE | NURSE | CHW | AMBULANCE_MANAGER | COMMUNITY_USER
+// MultiplePregnancy: NONE | TWINS | TRIPLETS_PLUS
+// AntenatalStatus: YET_TO_START | ACTIVE | COMPLETED
+// PregnancyStatus: ACTIVE | CLOSED | DELIVERED
+// ObstetricOutcome: LIVE_BIRTH | MISCARRIAGE | STILLBIRTH | ABORTION
+// DeliveryMode: SVD | C_SECTION | ASSISTED
+// VisitType: ROUTINE | SCANNING | REVIEW | OTHER
+// AlertType: MANUAL_EMERGENCY | HIGH_RISK_BP | DANGER_SIGN | COMMUNITY_REQUEST
+// AlertStatus: OPEN | ACKNOWLEDGED | CLOSED
+// AppointmentStatus: SCHEDULED | CONFIRMED | MISSED | LIKELY_MISSED | CANCELLED | ATTENDED
+// ReferralUrgency: ROUTINE | URGENT | EMERGENCY
+// ReferralStatus: PENDING | ACCEPTED | COMPLETED | DECLINED
+// ClinicalArchiveType: TEST_RESULT | IMAGING | MEDICATION | PROCEDURE | OTHER
+// ReminderStatus: PENDING | SENT | FAILED
+// SmsStatus: PENDING | SENT | FAILED | DELIVERED
+// AuditAction: CREATE | UPDATE | DELETE | READ_SENSITIVE
+// ConsentType: DATA_COLLECTION | SMS_COMMUNICATION | DATA_SHARING
+
+// ============================================================================
+// CORE MODELS
+// ============================================================================
+
+model Country {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  code      String  @unique
+  createdAt DateTime @default(now())
+
+  users         User[]
+  districts     District[]
+  facilities    Facility[]
+  mothers       Mother[]
+
+  @@map("countries")
+}
+
+model District {
+  id        Int     @id @default(autoincrement())
+  name      String
+  countryId Int
+  createdAt DateTime @default(now())
+
+  country      Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  users        User[]
+  facilities   Facility[]
+  mothers      Mother[]
+  serviceProviders ServiceProvider[]
+
+  @@index([countryId])
+  @@map("districts")
+}
+
+model Facility {
+  id              Int     @id @default(autoincrement())
+  name            String
+  type            String  // HOSPITAL|CLINIC|HEALTH_CENTRE
+  districtId      Int
+  countryId       Int
+  lat             Float?
+  lng             Float?
+  emergencyPhone  String?
+  ambulancePhone  String?
+  onCallPhone     String?
+  backupPhone     String?
+  createdAt       DateTime @default(now())
+
+  district        District @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  country         Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  organisations   Organisation[]
+  hospitals       Hospital[]
+  mothers         Mother[]
+  referralsFrom   Referral[] @relation("FromFacility")
+  referralsTo     Referral[] @relation("ToFacility")
+
+  @@index([districtId])
+  @@index([countryId])
+  @@map("facilities")
+}
+
+model User {
+  id            Int     @id @default(autoincrement())
+  name          String
+  username      String  @unique
+  passwordHash  String
+  role          String  // SYSTEM_ADMIN|HOSPITAL_ADMIN|ORG_ADMIN|DHO|DOCTOR|MIDWIFE|NURSE|CHW|AMBULANCE_MANAGER|COMMUNITY_USER
+  isActive      Boolean @default(true)
+  phone         String?
+  hospitalId    Int?
+  countryId     Int?
+  orgId         Int?
+  districtId    Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  country         Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  district        District? @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  hospital        Hospital? @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  organisation    Organisation? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  // Relationships as HCP
+  ancVisitsCreated     AncVisit[] @relation("CreatedBy")
+  vitalsCreated        Vitals[] @relation("CreatedBy")
+  symptomsCreated      Symptoms[] @relation("CreatedBy")
+  appointmentsCreated  Appointment[] @relation("CreatedBy")
+  referralsCreated     Referral[] @relation("CreatedBy")
+  archivesUploaded     ClinicalArchive[] @relation("UploadedBy")
+  alertsInitiated      Alert[] @relation("InitiatedBy")
+  alertsAssigned       Alert[] @relation("AssignedTo")
+  pregnanciesOpened    Pregnancy[] @relation("OpenedBy")
+  mothersRegistered    Mother[] @relation("RegisteredBy")
+  chws                 Mother[] @relation("CHW")
+  appointmentsCHW      Appointment[] @relation("AssignedCHW")
+  aiChatLogs           AiChatLog[]
+  auditLogs            AuditLog[]
+  consentRecords       ConsentRecord[]
+
+  @@index([role])
+  @@index([isActive])
+  @@index([countryId])
+  @@index([districtId])
+  @@map("users")
+}
+
+model Organisation {
+  id        Int     @id @default(autoincrement())
+  name      String
+  facilityId Int
+  createdAt DateTime @default(now())
+
+  facility  Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  users     User[]
+
+  @@index([facilityId])
+  @@map("organisations")
+}
+
+model Hospital {
+  id        Int     @id @default(autoincrement())
+  name      String
+  facilityId Int
+  createdAt DateTime @default(now())
+
+  facility  Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  users     User[]
+
+  @@index([facilityId])
+  @@map("hospitals")
+}
+
+// ============================================================================
+// MOTHER & PREGNANCY MODELS
+// ============================================================================
+
+model Mother {
+  id              Int     @id @default(autoincrement())
+  fullName        String
+  phone           String  @unique
+  dob             DateTime?
+  village         String?
+  districtId      Int
+  facilityId      Int
+  chwId           Int?
+  consentAccepted Boolean @default(false)
+  consentDate     DateTime?
+  consentIp       String?
+  registeredById  Int
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  district        District @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  facility        Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  registeredBy    User @relation("RegisteredBy", fields: [registeredById], references: [id], onDelete: Restrict)
+  chw             User? @relation("CHW", fields: [chwId], references: [id], onDelete: SetNull)
+  country         Country @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  pregnancies     Pregnancy[]
+  ancVisits       AncVisit[]
+  vitals          Vitals[]
+  symptoms        Symptoms[]
+  alerts          Alert[]
+  appointments    Appointment[]
+  referrals       Referral[]
+  clinicalArchives ClinicalArchive[]
+  reminderSchedules ReminderSchedule[]
+  consentRecords    ConsentRecord[]
+
+  @@index([phone])
+  @@index([districtId])
+  @@index([facilityId])
+  @@index([chwId])
+  @@index([deletedAt])
+  @@map("mothers")
+}
+
+model Pregnancy {
+  id                   Int     @id @default(autoincrement())
+  motherId             Int
+  lmpDate              DateTime?
+  edd                  DateTime?
+  gravida              Int?
+  parity               Int?
+  multiplePregnancy    String? @default("NONE") // NONE|TWINS|TRIPLETS_PLUS
+  riskFactors          String? // JSON array of risk factors
+  isHighRisk           Boolean @default(false)
+  antenatalStatus      String? @default("YET_TO_START") // YET_TO_START|ACTIVE|COMPLETED
+  status               String  @default("ACTIVE") // ACTIVE|CLOSED|DELIVERED
+  deliveryDate         DateTime?
+  deliveryOutcome      String?
+  deliveryMode         String? // SVD|C_SECTION|ASSISTED
+  babyWeightKg         Float?
+  complications        String? // JSON array of complications
+  ancCardUrl           String?
+  openedById           Int
+  closedAt             DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  mother              Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  openedBy            User @relation("OpenedBy", fields: [openedById], references: [id], onDelete: Restrict)
+
+  obstetricHistory    ObstetricHistory[]
+  ancVisits           AncVisit[]
+  vitals              Vitals[]
+  symptoms            Symptoms[]
+  alerts              Alert[]
+  appointments        Appointment[]
+  referrals           Referral[]
+  clinicalArchives    ClinicalArchive[]
+
+  @@index([motherId])
+  @@index([status])
+  @@index([isHighRisk])
+  @@index([openedById])
+  @@map("pregnancies")
+}
+
+model ObstetricHistory {
+  id            Int     @id @default(autoincrement())
+  pregnancyId   Int
+  year          Int
+  outcome       String  // LIVE_BIRTH|MISCARRIAGE|STILLBIRTH|ABORTION
+  complications String? // JSON array of complications
+  deliveryMode  String? // SVD|C_SECTION|ASSISTED
+  createdAt     DateTime @default(now())
+
+  pregnancy Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+
+  @@index([pregnancyId])
+  @@map("obstetric_history")
+}
+
+// ============================================================================
+// ANTENATAL CARE VISIT MODELS
+// ============================================================================
+
+model AncVisit {
+  id               Int     @id @default(autoincrement())
+  visitNumber      Int
+  pregnancyId      Int
+  motherId         Int
+  visitType        String  // ROUTINE|SCANNING|REVIEW|OTHER
+  purposeOther     String?
+  visitDateTime    DateTime
+  nextAppointment  DateTime?
+  notes            String?
+  createdById      Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  pregnancy   Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  mother      Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  createdBy   User @relation("CreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  vitals            Vitals[]
+  symptoms          Symptoms[]
+  alerts            Alert[]
+  appointments      Appointment[]
+  reminderSchedules ReminderSchedule[]
+
+  @@index([pregnancyId])
+  @@index([motherId])
+  @@index([visitDateTime])
+  @@index([createdById])
+  @@index([deletedAt])
+  @@map("anc_visits")
+}
+
+model Vitals {
+  id              Int     @id @default(autoincrement())
+  ancVisitId      Int?
+  pregnancyId     Int
+  motherId        Int
+  systolicBP      Int?
+  diastolicBP     Int?
+  bpNotTaken      Boolean @default(false)
+  temperatureC    Float?
+  weightKg        Float?
+  pulseBpm        Int?
+  respRate        Int?
+  oxygenSatPct    Float?
+  createdById     Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  ancVisit  AncVisit? @relation(fields: [ancVisitId], references: [id], onDelete: SetNull)
+  pregnancy Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  mother    Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  createdBy User @relation("CreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([ancVisitId])
+  @@index([pregnancyId])
+  @@index([motherId])
+  @@index([createdById])
+  @@map("vitals")
+}
+
+model Symptoms {
+  id                    Int     @id @default(autoincrement())
+  ancVisitId            Int?
+  pregnancyId           Int
+  motherId              Int
+  bleeding              Boolean @default(false)
+  severeHeadache        Boolean @default(false)
+  blurredVision         Boolean @default(false)
+  swelling              Boolean @default(false)
+  fever                 Boolean @default(false)
+  abdominalPain         Boolean @default(false)
+  reducedFetalMovement  Boolean @default(false)
+  other                 String? // Other symptoms or notes
+  createdById           Int
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  ancVisit  AncVisit? @relation(fields: [ancVisitId], references: [id], onDelete: SetNull)
+  pregnancy Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  mother    Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  createdBy User @relation("CreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([ancVisitId])
+  @@index([pregnancyId])
+  @@index([motherId])
+  @@index([createdById])
+  @@map("symptoms")
+}
+
+// ============================================================================
+// ALERT & COORDINATION MODELS
+// ============================================================================
+
+model Alert {
+  id             Int     @id @default(autoincrement())
+  type           String  // MANUAL_EMERGENCY|HIGH_RISK_BP|DANGER_SIGN|COMMUNITY_REQUEST
+  status         String  @default("OPEN") // OPEN|ACKNOWLEDGED|CLOSED
+  motherId       Int?
+  pregnancyId    Int?
+  ancVisitId     Int?
+  initiatedById  Int?
+  assignedToId   Int?
+  metadata       String? // JSON metadata for additional context
+  closedAt       DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  mother       Mother? @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  pregnancy    Pregnancy? @relation(fields: [pregnancyId], references: [id], onDelete: SetNull)
+  ancVisit     AncVisit? @relation(fields: [ancVisitId], references: [id], onDelete: SetNull)
+  initiatedBy  User? @relation("InitiatedBy", fields: [initiatedById], references: [id], onDelete: SetNull)
+  assignedTo   User? @relation("AssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([motherId])
+  @@index([pregnancyId])
+  @@index([ancVisitId])
+  @@index([status])
+  @@index([type])
+  @@index([initiatedById])
+  @@index([assignedToId])
+  @@map("alerts")
+}
+
+model Appointment {
+  id              Int     @id @default(autoincrement())
+  motherId        Int
+  pregnancyId     Int?
+  ancVisitId      Int?
+  appointmentDateTime DateTime
+  purpose         String  // ROUTINE|SCANNING|REVIEW|OTHER
+  purposeOther    String?
+  status          String  @default("SCHEDULED") // SCHEDULED|CONFIRMED|MISSED|LIKELY_MISSED|CANCELLED|ATTENDED
+  assignedCHWId   Int?
+  notes           String?
+  createdById     Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  mother      Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  pregnancy   Pregnancy? @relation(fields: [pregnancyId], references: [id], onDelete: SetNull)
+  ancVisit    AncVisit? @relation(fields: [ancVisitId], references: [id], onDelete: SetNull)
+  assignedCHW User? @relation("AssignedCHW", fields: [assignedCHWId], references: [id], onDelete: SetNull)
+  createdBy   User @relation("CreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([motherId])
+  @@index([pregnancyId])
+  @@index([ancVisitId])
+  @@index([status])
+  @@index([appointmentDateTime])
+  @@index([assignedCHWId])
+  @@map("appointments")
+}
+
+model Referral {
+  id              Int     @id @default(autoincrement())
+  motherId        Int
+  pregnancyId     Int?
+  fromFacilityId  Int
+  toFacilityId    Int
+  reason          String?
+  reasonOther     String?
+  urgency         String  // ROUTINE|URGENT|EMERGENCY
+  notes           String?
+  status          String  @default("PENDING") // PENDING|ACCEPTED|COMPLETED|DECLINED
+  statusNotes     String?
+  createdById     Int
+  createdAt       DateTime @default(now())
+
+  mother          Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  pregnancy       Pregnancy? @relation(fields: [pregnancyId], references: [id], onDelete: SetNull)
+  fromFacility    Facility @relation("FromFacility", fields: [fromFacilityId], references: [id], onDelete: Restrict)
+  toFacility      Facility @relation("ToFacility", fields: [toFacilityId], references: [id], onDelete: Restrict)
+  createdBy       User @relation("CreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([motherId])
+  @@index([pregnancyId])
+  @@index([status])
+  @@index([urgency])
+  @@index([fromFacilityId])
+  @@index([toFacilityId])
+  @@map("referrals")
+}
+
+model ClinicalArchive {
+  id              Int     @id @default(autoincrement())
+  pregnancyId     Int
+  motherId        Int
+  type            String  // TEST_RESULT|IMAGING|MEDICATION|PROCEDURE|OTHER
+  title           String
+  datePerformed   DateTime?
+  notes           String?
+  fileUrl         String?
+  uploadedById    Int
+  createdAt       DateTime @default(now())
+  deletedAt       DateTime?
+
+  pregnancy   Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  mother      Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  uploadedBy  User @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([pregnancyId])
+  @@index([motherId])
+  @@index([type])
+  @@index([uploadedById])
+  @@index([deletedAt])
+  @@map("clinical_archives")
+}
+
+// ============================================================================
+// SYSTEM MODELS
+// ============================================================================
+
+model ServiceProvider {
+  id          Int     @id @default(autoincrement())
+  name        String
+  districtId  Int
+  address     String?
+  phone       String?
+  serviceMenu String? // JSON array of services offered
+  lat         Float?
+  lng         Float?
+  createdAt   DateTime @default(now())
+
+  district District @relation(fields: [districtId], references: [id], onDelete: Cascade)
+
+  @@index([districtId])
+  @@map("service_providers")
+}
+
+model ReminderSchedule {
+  id          Int     @id @default(autoincrement())
+  ancVisitId  Int?
+  motherId    Int
+  sendAt      DateTime
+  type        String  // SMS|EMAIL|PUSH
+  status      String  @default("PENDING") // PENDING|SENT|FAILED
+  sentAt      DateTime?
+  errorLog    String?
+  createdAt   DateTime @default(now())
+
+  ancVisit  AncVisit? @relation(fields: [ancVisitId], references: [id], onDelete: SetNull)
+  mother    Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
+
+  @@index([motherId])
+  @@index([ancVisitId])
+  @@index([status])
+  @@index([sendAt])
+  @@map("reminder_schedules")
+}
+
+model SmsLog {
+  id                  Int     @id @default(autoincrement())
+  toPhone             String
+  messagePreview      String
+  gateway             String  // africa-talking|twilio
+  status              String  // PENDING|SENT|FAILED|DELIVERED
+  gatewayMessageId    String?
+  errorMessage        String?
+  createdAt           DateTime @default(now())
+
+  @@index([toPhone])
+  @@index([status])
+  @@index([createdAt])
+  @@map("sms_logs")
+}
+
+model Permission {
+  id          Int     @id @default(autoincrement())
+  resource    String  // e.g., 'pregnancy', 'mother', 'appointment'
+  action      String  // e.g., 'create', 'read', 'update', 'delete'
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@index([resource])
+  @@index([action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           Int     @id @default(autoincrement())
+  role         String  // SYSTEM_ADMIN|HOSPITAL_ADMIN|ORG_ADMIN|DHO|DOCTOR|MIDWIFE|NURSE|CHW|AMBULANCE_MANAGER|COMMUNITY_USER
+  permissionId Int
+  createdAt    DateTime @default(now())
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model AuditLog {
+  id              Int     @id @default(autoincrement())
+  actorId         Int
+  actorRole       String  // SYSTEM_ADMIN|HOSPITAL_ADMIN|ORG_ADMIN|DHO|DOCTOR|MIDWIFE|NURSE|CHW|AMBULANCE_MANAGER|COMMUNITY_USER
+  action          String  // CREATE|UPDATE|DELETE|READ_SENSITIVE
+  resource        String
+  resourceId      Int
+  changesSummary  String? // JSON object of changes
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([actorId])
+  @@index([resource])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model AiChatLog {
+  id            Int     @id @default(autoincrement())
+  userId        Int
+  messageCount  Int @default(1)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("ai_chat_logs")
+}
+
+model ConsentRecord {
+  id          Int     @id @default(autoincrement())
+  userId      Int
+  motherId    Int?
+  type        String  // DATA_COLLECTION|SMS_COMMUNICATION|DATA_SHARING
+  acceptedAt  DateTime @default(now())
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mother  Mother? @relation(fields: [motherId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([motherId])
+  @@map("consent_records")
+}
