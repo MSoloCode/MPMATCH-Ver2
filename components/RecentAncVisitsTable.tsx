@@ -1,18 +1,24 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { ArrowUpRight, Info } from 'lucide-react';
+import { formatVisitDateTime } from '@/lib/date-format';
+import VisitDetailsModal from '@/components/VisitDetailsModal';
 
 interface AncVisit {
   id: number;
   visitNumber: number;
+  pregnancyId: number;
+  motherId: number;
   visitType: string;
+  purposeOther?: string | null;
   visitDateTime: string;
   nextAppointment?: string | null;
   notes?: string | null;
   mother: {
     id: number;
     fullName: string;
+    phone: string;
   };
   createdBy: {
     id: number;
@@ -48,6 +54,8 @@ export default function RecentAncVisitsTable({
   highlightedVisitId = null,
 }: RecentAncVisitsTableProps) {
   const [highlightedId, setHighlightedId] = useState<number | null>(highlightedVisitId);
+  const [selectedVisit, setSelectedVisit] = useState<AncVisit | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const tableRef = useRef<HTMLTableElement>(null);
   const highlightedRowRef = useRef<HTMLTableRowElement>(null);
 
@@ -68,6 +76,22 @@ export default function RecentAncVisitsTable({
       return () => clearTimeout(timer);
     }
   }, [highlightedVisitId]);
+
+  const handleInfoClick = (visit: AncVisit) => {
+    setSelectedVisit(visit);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedVisit(null);
+  };
+
+  const handleTrendClick = (visit: AncVisit) => {
+    // Navigate to vitals/symptoms page for this visit
+    // Route: /clinical/pregnancies/[pregnancyId]/visits/[visitId]
+    window.location.href = `/clinical/pregnancies/${visit.pregnancyId}/visits/${visit.id}`;
+  };
 
   if (isLoading) {
     return (
@@ -97,11 +121,14 @@ export default function RecentAncVisitsTable({
         <table ref={tableRef} className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-300 bg-neutral-50">
+              <th className="text-left px-4 py-3 font-semibold text-neutral-900">ID</th>
               <th className="text-left px-4 py-3 font-semibold text-neutral-900">Mother</th>
-              <th className="text-left px-4 py-3 font-semibold text-neutral-900">Visit Type</th>
+              <th className="text-left px-4 py-3 font-semibold text-neutral-900">Visit #</th>
+              <th className="text-left px-4 py-3 font-semibold text-neutral-900">Pregnancy ID</th>
+              <th className="text-left px-4 py-3 font-semibold text-neutral-900">Type</th>
               <th className="text-left px-4 py-3 font-semibold text-neutral-900">Visit Date</th>
-              <th className="text-left px-4 py-3 font-semibold text-neutral-900">Next Appointment</th>
-              <th className="text-left px-4 py-3 font-semibold text-neutral-900">Created By</th>
+              <th className="text-left px-4 py-3 font-semibold text-neutral-900">Next Appt</th>
+              <th className="text-center px-4 py-3 font-semibold text-neutral-900">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -113,7 +140,22 @@ export default function RecentAncVisitsTable({
                   highlightedId === visit.id ? 'bg-yellow-100 animate-pulse' : ''
                 }`}
               >
-                <td className="px-4 py-3 text-neutral-900 font-medium">{visit.mother.fullName}</td>
+                {/* ID */}
+                <td className="px-4 py-3 text-neutral-900 font-medium">{visit.id}</td>
+
+                {/* Mother - Name + Phone */}
+                <td className="px-4 py-3">
+                  <div className="text-neutral-900 font-medium">{visit.mother.fullName}</div>
+                  <div className="text-sm text-neutral-600">{visit.mother.phone}</div>
+                </td>
+
+                {/* Visit # */}
+                <td className="px-4 py-3 text-neutral-900 font-medium">{visit.visitNumber}</td>
+
+                {/* Pregnancy ID */}
+                <td className="px-4 py-3 text-neutral-900 font-medium">{visit.pregnancyId}</td>
+
+                {/* Type */}
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getVisitTypeBadgeColor(
@@ -123,34 +165,36 @@ export default function RecentAncVisitsTable({
                     {visit.visitType}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-neutral-600">
-                  {new Date(visit.visitDateTime).toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                  <br />
-                  <span className="text-xs text-neutral-500">
-                    {formatDistanceToNow(new Date(visit.visitDateTime), { addSuffix: true })}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-neutral-600">
-                  {visit.nextAppointment
-                    ? new Date(visit.nextAppointment).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : '—'}
-                </td>
-                <td className="px-4 py-3 text-neutral-600">
-                  {visit.createdBy.name}
-                  <br />
-                  <span className="text-xs text-neutral-500">{visit.createdBy.role}</span>
+
+                {/* Visit Date */}
+                <td className="px-4 py-3 text-neutral-600">{formatVisitDateTime(visit.visitDateTime)}</td>
+
+                {/* Next Appointment */}
+                <td className="px-4 py-3 text-neutral-600">{formatVisitDateTime(visit.nextAppointment)}</td>
+
+                {/* Actions */}
+                <td className="px-4 py-3">
+                  <div className="flex justify-center items-center gap-2">
+                    {/* Trend/Vitals Button */}
+                    <button
+                      onClick={() => handleTrendClick(visit)}
+                      className="inline-flex items-center justify-center p-2 text-neutral-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="View vitals and symptoms"
+                      aria-label="View vitals"
+                    >
+                      <ArrowUpRight size={18} />
+                    </button>
+
+                    {/* Info Button */}
+                    <button
+                      onClick={() => handleInfoClick(visit)}
+                      className="inline-flex items-center justify-center p-2 text-neutral-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="View visit details"
+                      aria-label="View details"
+                    >
+                      <Info size={18} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -160,6 +204,11 @@ export default function RecentAncVisitsTable({
 
       {visits.length > 10 && (
         <p className="text-xs text-neutral-500 mt-4">Showing {visits.length} recent visits</p>
+      )}
+
+      {/* Visit Details Modal */}
+      {selectedVisit && (
+        <VisitDetailsModal visit={selectedVisit} isOpen={isModalOpen} onClose={handleCloseModal} />
       )}
     </div>
   );

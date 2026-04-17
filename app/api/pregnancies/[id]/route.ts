@@ -57,12 +57,13 @@ import { writeAuditLog, extractAuditContext } from '@/lib/audit';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // ========================================================================
     // 1. EXTRACT AND VALIDATE AUTHORIZATION
     // ========================================================================
+    const resolvedParams = await params;
     let user;
     try {
       user = extractUser(request);
@@ -94,7 +95,7 @@ export async function GET(
     // ========================================================================
     // 2. VALIDATE PREGNANCY ID
     // ========================================================================
-    const pregnancyId = parseInt(params.id, 10);
+    const pregnancyId = parseInt(resolvedParams.id, 10);
     if (isNaN(pregnancyId)) {
       return NextResponse.json(
         {
@@ -314,12 +315,13 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // ========================================================================
     // 1. EXTRACT AND VALIDATE AUTHORIZATION
     // ========================================================================
+    const resolvedParams = await params;
     let user;
     try {
       user = extractUser(request);
@@ -351,7 +353,7 @@ export async function PUT(
     // ========================================================================
     // 2. VALIDATE PREGNANCY ID
     // ========================================================================
-    const pregnancyId = parseInt(params.id, 10);
+    const pregnancyId = parseInt(resolvedParams.id, 10);
     if (isNaN(pregnancyId)) {
       return NextResponse.json(
         {

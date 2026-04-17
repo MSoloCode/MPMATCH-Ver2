@@ -64,11 +64,12 @@ import { writeAuditLog, extractAuditContext } from '@/lib/audit';
  *   "error": "Mother not found"
  * }
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // ========================================================================
     // 1. EXTRACT AND VALIDATE AUTHORIZATION
     // ========================================================================
+    const resolvedParams = await params;
     const user = extractUser(request);
     if (!user) {
       return NextResponse.json(
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // ========================================================================
     // 4. PARSE & VALIDATE MOTHER ID
     // ========================================================================
-    const motherId = parseInt(params.id, 10);
+    const motherId = parseInt(resolvedParams.id, 10);
     if (isNaN(motherId) || motherId <= 0) {
       return NextResponse.json(
         { success: false, error: 'Invalid mother ID' },
@@ -303,11 +304,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
  *   "error": "Validation error message"
  * }
  */
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // ========================================================================
     // 1. AUTHENTICATION & AUTHORIZATION
     // ========================================================================
+    const resolvedParams = await params;
     const user = extractUser(request);
     if (!user) {
       throw new UnauthorizedError('No token provided');
@@ -335,7 +337,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     const { fullName, dob, village, chwId } = body;
-    const motherId = parseInt(params.id, 10);
+    const motherId = parseInt(resolvedParams.id, 10);
 
     if (isNaN(motherId) || motherId <= 0) {
       return NextResponse.json(
@@ -632,11 +634,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
  *   "error": "Mother not found"
  * }
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // ========================================================================
     // 1. AUTHENTICATION & AUTHORIZATION
     // ========================================================================
+    const resolvedParams = await params;
     const user = extractUser(request);
     if (!user) {
       throw new UnauthorizedError('No token provided');
@@ -652,7 +655,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     // ========================================================================
     // 2. PARSE & VALIDATE MOTHER ID
     // ========================================================================
-    const motherId = parseInt(params.id, 10);
+    const motherId = parseInt(resolvedParams.id, 10);
 
     if (isNaN(motherId)) {
       return NextResponse.json(

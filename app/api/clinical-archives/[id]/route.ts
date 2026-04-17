@@ -37,7 +37,7 @@ import { writeAuditLog, extractAuditContext } from '@/lib/audit';
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // ========================================================================
@@ -74,7 +74,8 @@ export async function DELETE(
     // ========================================================================
     // 2. VALIDATE ARCHIVE ID
     // ========================================================================
-    const archiveId = parseInt(params.id, 10);
+    const resolvedParams = await params;
+    const archiveId = parseInt(resolvedParams.id, 10);
     if (isNaN(archiveId)) {
       return NextResponse.json(
         {

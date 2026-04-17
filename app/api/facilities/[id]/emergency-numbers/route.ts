@@ -34,13 +34,14 @@ import { EmergencyNumbers } from '@/types';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // ========================================================================
     // 1. PARSE FACILITY ID FROM PATH
     // ========================================================================
-    const facilityId = parseInt(params.id, 10);
+    const resolvedParams = await params;
+    const facilityId = parseInt(resolvedParams.id, 10);
     if (isNaN(facilityId)) {
       return NextResponse.json(
         {

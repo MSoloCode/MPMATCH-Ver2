@@ -9,13 +9,17 @@ import AncVisitWorkflowBreadcrumb from '@/components/AncVisitWorkflowBreadcrumb'
 interface AncVisit {
   id: number;
   visitNumber: number;
+  pregnancyId: number;
+  motherId: number;
   visitType: string;
+  purposeOther?: string | null;
   visitDateTime: string;
   nextAppointment?: string | null;
   notes?: string | null;
   mother: {
     id: number;
     fullName: string;
+    phone: string;
   };
   createdBy: {
     id: number;

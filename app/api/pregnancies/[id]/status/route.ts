@@ -61,12 +61,13 @@ import { writeAuditLog, extractAuditContext } from '@/lib/audit';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // ========================================================================
     // 1. EXTRACT AND VALIDATE AUTHORIZATION
     // ========================================================================
+    const resolvedParams = await params;
     let user;
     try {
       user = extractUser(request);
@@ -104,7 +105,7 @@ export async function PATCH(
     // ========================================================================
     // 2. VALIDATE PREGNANCY ID
     // ========================================================================
-    const pregnancyId = parseInt(params.id, 10);
+    const pregnancyId = parseInt(resolvedParams.id, 10);
     if (isNaN(pregnancyId)) {
       return NextResponse.json(
         {
