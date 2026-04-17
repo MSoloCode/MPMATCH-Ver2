@@ -1,8 +1,12 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
+import dynamicImport from 'next/dynamic';
 import { useState } from 'react';
-import { MapContainer } from '@/components/Map/MapContainer';
-import { FilterPanel } from '@/components/Map/FilterPanel';
+
+const MapContainer = dynamicImport(() => import('@/components/Map/MapContainer'), { ssr: false });
+const FilterPanel = dynamicImport(() => import('@/components/Map/FilterPanel'), { ssr: false });
 
 export default function MapPage() {
   const [showFacilities, setShowFacilities] = useState(true);

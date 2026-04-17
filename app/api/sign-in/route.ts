@@ -133,7 +133,6 @@ export async function POST(request: NextRequest) {
           username: true,
           name: true,
           passwordHash: true,
-          email: true,
           phone: true,
           role: true,
           isActive: true,
@@ -210,7 +209,6 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         username: user.username,
         phone: user.phone,
-        email: user.email,
         role: user.role,
       });
     } catch (error) {
@@ -231,7 +229,7 @@ export async function POST(request: NextRequest) {
     writeAuditLog({
       actorId: user.id,
       actorRole: user.role,
-      action: 'SIGN_IN',
+      action: 'READ',
       resource: 'USER',
       resourceId: user.id,
       ipAddress: auditContext.ipAddress,
@@ -253,7 +251,6 @@ export async function POST(request: NextRequest) {
           user: {
             userId: user.id,
             username: user.username,
-            email: user.email || null,
             phone: user.phone || null,
             role: user.role,
             name: user.name,

@@ -277,10 +277,7 @@ export async function POST(request: NextRequest) {
           data: {
             motherId: mother.id,
             type: 'DATA_COLLECTION',
-            consentGiven: true,
-            consentDate: currentTime,
-            consentIp: ipAddress,
-            expiryDate: new Date(currentTime.getTime() + 2 * 365 * 24 * 60 * 60 * 1000), // 2 years
+            ipAddress: ipAddress,
           },
         });
       } catch (error) {
@@ -333,7 +330,7 @@ export async function POST(request: NextRequest) {
     // ========================================================================
     if (userType === 'chw' || userType === 'healthcare_worker') {
       // Check if phone already registered in User table
-      const existingUser = await db.user.findUnique({
+      const existingUser = await db.user.findFirst({
         where: { phone: normalizedPhone },
         select: { id: true },
       });

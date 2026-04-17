@@ -321,7 +321,7 @@ export function RegisterMotherModal({
                 label="Full Name"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                error={!!errors.fullName}
+                error={errors.fullName}
                 helperText={errors.fullName}
                 placeholder="Enter full name"
                 required
@@ -334,8 +334,7 @@ export function RegisterMotherModal({
                 label="Phone Number"
                 value={formData.phone}
                 onChange={handlePhoneChange}
-                error={!!errors.phone || !!phoneError}
-                helperText={errors.phone || phoneError}
+                error={errors.phone || phoneError}
                 required
               />
             </div>
@@ -346,7 +345,7 @@ export function RegisterMotherModal({
                 label="Date of Birth"
                 value={formData.dob}
                 onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                error={!!errors.dob}
+                error={errors.dob}
                 helperText={errors.dob}
               />
             </div>
@@ -370,8 +369,7 @@ export function RegisterMotherModal({
                   setFormData({ ...formData, districtId: e.target.value, facilityId: '', chwId: '' });
                 }}
                 options={districts.map((d) => ({ value: d.id.toString(), label: d.name }))}
-                error={!!errors.districtId}
-                helperText={errors.districtId}
+                error={errors.districtId}
                 placeholder="Select a district"
                 required
                 disabled={loadingDistricts}
@@ -385,8 +383,7 @@ export function RegisterMotherModal({
                 value={formData.facilityId}
                 onChange={(e) => setFormData({ ...formData, facilityId: e.target.value })}
                 options={facilities.map((f) => ({ value: f.id.toString(), label: f.name }))}
-                error={!!errors.facilityId}
-                helperText={errors.facilityId}
+                error={errors.facilityId}
                 placeholder={formData.districtId ? 'Select a facility' : 'Select a district first'}
                 required
                 disabled={!formData.districtId || loadingFacilities}
@@ -400,8 +397,7 @@ export function RegisterMotherModal({
                 value={formData.chwId}
                 onChange={(e) => setFormData({ ...formData, chwId: e.target.value })}
                 options={chws.map((c) => ({ value: c.id.toString(), label: c.name }))}
-                error={!!errors.chwId}
-                helperText={errors.chwId}
+                error={errors.chwId}
                 placeholder={formData.districtId ? 'Select a CHW' : 'Select a district first'}
                 required
                 disabled={!formData.districtId || loadingChws}

@@ -179,14 +179,14 @@ model Mother {
   consentAccepted Boolean @default(false)
   consentDate     DateTime?
   consentIp       String?
-  registeredById  Int
+  registeredById  Int?
   deletedAt       DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   district        District @relation(fields: [districtId], references: [id], onDelete: Cascade)
   facility        Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
-  registeredBy    User @relation("RegisteredBy", fields: [registeredById], references: [id], onDelete: Restrict)
+  registeredBy    User? @relation("RegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
   chw             User? @relation("CHW", fields: [chwId], references: [id], onDelete: SetNull)
   country         Country @relation(fields: [facilityId], references: [id], onDelete: Cascade)
 
@@ -569,17 +569,17 @@ model RolePermission {
 
 model AuditLog {
   id              Int     @id @default(autoincrement())
-  actorId         Int
+  actorId         Int?
   actorRole       String  // SYSTEM_ADMIN|HOSPITAL_ADMIN|ORG_ADMIN|DHO|DOCTOR|MIDWIFE|NURSE|CHW|AMBULANCE_MANAGER|COMMUNITY_USER
   action          String  // CREATE|UPDATE|DELETE|READ_SENSITIVE
   resource        String
-  resourceId      Int
+  resourceId      Int?
   changesSummary  String? // JSON object of changes
   ipAddress       String?
   userAgent       String?
   createdAt       DateTime @default(now())
 
-  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([actorId])
   @@index([resource])
@@ -602,14 +602,14 @@ model AiChatLog {
 
 model ConsentRecord {
   id          Int     @id @default(autoincrement())
-  userId      Int
+  userId      Int?
   motherId    Int?
   type        String  // DATA_COLLECTION|SMS_COMMUNICATION|DATA_SHARING
   acceptedAt  DateTime @default(now())
   ipAddress   String?
   createdAt   DateTime @default(now())
 
-  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   mother  Mother? @relation(fields: [motherId], references: [id], onDelete: SetNull)
 
   @@index([userId])

@@ -1,11 +1,15 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
+import dynamicImport from 'next/dynamic';
 import { useState, useEffect } from 'react';
 import { MessageCircle, Hash, Phone, Shield, CheckCircle, Lock, ArrowUp } from 'lucide-react';
 import Button from '@/components/Button';
-import HeroImage from '@/components/HeroImage';
 import { FacilityListItem, EmergencyNumbers } from '@/types';
+
+const HeroImage = dynamicImport(() => import('@/components/HeroImage'), { ssr: false });
 
 export default function Home() {
   // ============================================================================

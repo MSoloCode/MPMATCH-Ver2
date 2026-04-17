@@ -164,7 +164,16 @@ export default function MotherRegisterPage() {
 
       if (result.success) {
         // Auto-login with returned token
-        login(result.data.token, result.data.motherId);
+        // Mothers don't have userId, so pass 0 and set motherId instead
+        login(
+          result.data.token,
+          0, // No userId for mothers
+          result.data.fullName,
+          null, // email
+          result.data.phone,
+          'COMMUNITY_USER', // role for mothers
+          result.data.motherId // motherId
+        );
         setCurrentStep(3);
       } else {
         setErrors({

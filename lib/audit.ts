@@ -10,7 +10,7 @@ export interface WriteAuditLogParams {
   actorRole: string;
   action: "CREATE" | "READ" | "UPDATE" | "DELETE" | "READ_SENSITIVE";
   resource: string;
-  resourceId: number;
+  resourceId: number | null;
   changesSummary?: string | Record<string, any> | null;
   ipAddress?: string | null;
   userAgent?: string | null;

@@ -160,7 +160,11 @@ export async function POST(request: NextRequest) {
         facility: true,
         chw: {
           include: {
-            hospital: true,
+            hospital: {
+              include: {
+                facility: true,
+              },
+            },
           },
         },
       },
@@ -218,10 +222,14 @@ export async function POST(request: NextRequest) {
         role: 'CHW',
         isActive: true,
         districtId: mother.districtId,
-        facilityId: { not: null },
+        hospitalId: { not: null },
       },
       include: {
-        facility: true,
+        hospital: {
+          include: {
+            facility: true,
+          },
+        },
       },
     });
 
@@ -242,14 +250,14 @@ export async function POST(request: NextRequest) {
     }
 
     const chwsWithDistance: CHWWithDistance[] = chws
-      .filter((chw) => chw.facility && chw.facility.lat && chw.facility.lng)
+      .filter((chw) => chw.hospital?.facility && chw.hospital.facility.lat && chw.hospital.facility.lng)
       .map((chw) => ({
         chw,
         distanceKm: haversineDistanceKm(
           referenceLat,
           referenceLng,
-          chw.facility!.lat!,
-          chw.facility!.lng!
+          chw.hospital!.facility!.lat!,
+          chw.hospital!.facility!.lng!
         ),
       }))
       .sort((a, b) => a.distanceKm - b.distanceKm);
@@ -265,7 +273,7 @@ export async function POST(request: NextRequest) {
     }
 
     const nearestCHW = chwsWithDistance[0].chw;
-    const nearestCHWFacility = nearestCHW.facility!;
+    const nearestCHWFacility = nearestCHW.hospital?.facility!;
 
     // ========================================================================
     // 7. CREATE ALERT RECORD
@@ -342,16 +350,17 @@ export async function POST(request: NextRequest) {
 
     // Write audit log asynchronously (non-blocking)
     writeAuditLog({
+      actorId: motherId,
+      actorRole: 'COMMUNITY_USER',
       action: 'CREATE',
-      entity: 'Alert',
-      entityId: alert.id,
-      userId: motherId,
-      changes: {
+      resource: 'alert',
+      resourceId: alert.id,
+      changesSummary: {
         type: 'COMMUNITY_REQUEST',
         status: 'OPEN',
         assignedToId: nearestCHW.id,
       },
-      ipAddress: auditContext.ip,
+      ipAddress: auditContext.ipAddress,
       userAgent: auditContext.userAgent,
     }).catch((error) => {
       console.error('Audit log write failed:', error);

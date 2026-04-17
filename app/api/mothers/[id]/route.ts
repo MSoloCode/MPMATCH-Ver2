@@ -156,8 +156,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       if (scopingFilter.facilityId && mother.facilityId !== scopingFilter.facilityId) {
         hasAccess = false;
       }
-      if (scopingFilter.hospitalId && mother.facility?.hospitalId && mother.facility.hospitalId !== scopingFilter.hospitalId) {
-        hasAccess = false;
+      
+      // For hospital-scoped users, verify the facility is in their hospital
+      if (scopingFilter.hospitalId) {
+        const hospital = await db.hospital.findFirst({
+          where: {
+            id: scopingFilter.hospitalId,
+            facilityId: mother.facilityId,
+          },
+        });
+        if (!hospital) {
+          hasAccess = false;
+        }
       }
     }
 
@@ -174,11 +184,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const pregnancies = await db.pregnancy.findMany({
       where: {
         motherId: motherId,
-        deletedAt: null,
+        status: 'ACTIVE',
       },
       select: {
         id: true,
-        dueDate: true,
+        edd: true,
         isHighRisk: true,
         createdAt: true,
       },
@@ -188,9 +198,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const pregnancySummary = {
       count: await db.pregnancy.count({
-        where: { motherId: motherId, deletedAt: null },
+        where: { motherId: motherId, status: 'ACTIVE' },
       }),
-      latestDueDate: pregnancies.length > 0 ? pregnancies[0].dueDate : null,
+      latestDueDate: pregnancies.length > 0 ? pregnancies[0].edd : null,
       isHighRisk: pregnancies.length > 0 ? pregnancies[0].isHighRisk : false,
     };
 
@@ -465,9 +475,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // ========================================================================
     const existingMother = await db.mother.findUnique({
       where: { id: motherId },
-      include: {
-        facility: { select: { hospitalId: true } },
-      },
     });
 
     if (!existingMother || existingMother.deletedAt) {
@@ -484,7 +491,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (user.role === 'HOSPITAL_ADMIN') {
       // Hospital admin can only update mothers in their hospital
-      if (existingMother.facility?.hospitalId !== user.hospitalId) {
+      const hospital = await db.hospital.findFirst({
+        where: {
+          id: user.hospitalId,
+          facilityId: existingMother.facilityId,
+        },
+      });
+      if (!hospital) {
         throw new ForbiddenError('Cannot update mother outside your hospital scope');
       }
     } else if (user.role === 'DOCTOR' || user.role === 'NURSE' || user.role === 'MIDWIFE') {
@@ -680,7 +693,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       actorRole: user.role,
       action: 'DELETE',
       resource: 'Mother',
-      resourceId: motherId.toString(),
+      resourceId: motherId,
       changesSummary: {
         action: 'soft_delete',
         motherId: motherId,

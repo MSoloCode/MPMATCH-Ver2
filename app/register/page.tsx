@@ -177,7 +177,31 @@ export default function UnifiedRegisterPage() {
 
       if (result.success) {
         // Auto-login with returned token
-        login(result.data.token, result.data.userId || result.data.motherId);
+        const isMother = formData.userType === 'mother';
+        const role = isMother ? 'COMMUNITY_USER' : (formData.userType === 'chw' ? 'CHW' : 'DOCTOR');
+        
+        if (isMother) {
+          // Mothers don't have userId
+          login(
+            result.data.token,
+            0, // No userId for mothers
+            result.data.fullName,
+            null, // email
+            result.data.phone,
+            role,
+            result.data.motherId // motherId
+          );
+        } else {
+          // CHWs and healthcare workers have userId
+          login(
+            result.data.token,
+            result.data.userId,
+            result.data.fullName,
+            null, // email
+            result.data.phone,
+            role
+          );
+        }
         setCurrentStep(3);
       } else {
         setErrors({

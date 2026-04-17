@@ -189,7 +189,7 @@ export function MotherEditModal({
                 label="Full Name"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                error={!!errors.fullName}
+                error={errors.fullName}
                 helperText={errors.fullName}
                 placeholder="Enter full name"
                 required
@@ -202,8 +202,7 @@ export function MotherEditModal({
                 label="Phone Number"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                error={!!errors.phone}
-                helperText={errors.phone}
+                error={errors.phone}
                 required
               />
             </div>
@@ -215,8 +214,7 @@ export function MotherEditModal({
                 value={formData.districtId}
                 onChange={(e) => setFormData({ ...formData, districtId: e.target.value })}
                 options={districts.map((d) => ({ value: d.id.toString(), label: d.name }))}
-                error={!!errors.districtId}
-                helperText={errors.districtId}
+                error={errors.districtId}
                 placeholder="Select a district"
                 required
               />

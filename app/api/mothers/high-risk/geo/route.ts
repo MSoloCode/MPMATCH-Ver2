@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     let user: ScopedUserPayload;
     try {
-      user = extractUser(request);
+      user = extractUser(request) as ScopedUserPayload;
     } catch (error) {
       if (error instanceof UnauthorizedError) {
         return NextResponse.json(
@@ -238,14 +238,16 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     // 7. WRITE AUDIT LOG
     // ========================================================================
+    const auditContext = extractAuditContext(request);
     await writeAuditLog({
-      userId: user.id,
+      actorId: user.id || user.userId || null,
+      actorRole: user.role,
       action: 'READ_SENSITIVE',
       resource: 'mother',
       resourceId: null,
-      details: `Retrieved ${formattedMothers.length} high-risk mothers with geo coordinates`,
-      ipAddress: extractAuditContext(request).ipAddress,
-      userAgent: extractAuditContext(request).userAgent,
+      changesSummary: `Retrieved ${formattedMothers.length} high-risk mothers with geo coordinates`,
+      ipAddress: auditContext.ipAddress,
+      userAgent: auditContext.userAgent,
     });
 
     // ========================================================================

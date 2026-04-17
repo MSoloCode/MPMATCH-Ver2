@@ -179,7 +179,14 @@ export default function CHWRegisterPage() {
 
       if (result.success) {
         // Auto-login with returned token
-        login(result.data.token, result.data.userId);
+        login(
+          result.data.token,
+          result.data.userId,
+          result.data.fullName,
+          null, // email
+          result.data.phone,
+          'CHW' // role
+        );
         setCurrentStep(3);
       } else {
         setErrors({

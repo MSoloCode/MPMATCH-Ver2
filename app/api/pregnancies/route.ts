@@ -160,6 +160,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Mother ID filter (optional)
+    let motherId: number | undefined;
+    const motherIdParam = searchParams.get('motherId');
+    if (motherIdParam) {
+      motherId = parseInt(motherIdParam, 10);
+      if (isNaN(motherId) || motherId <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'motherId must be a positive integer',
+          },
+          { status: 422 }
+        );
+      }
+    }
+
     // High-risk filter (optional)
     const isHighRiskParam = searchParams.get('isHighRisk');
     let isHighRisk: boolean | undefined;
@@ -220,6 +236,9 @@ export async function GET(request: NextRequest) {
     // Add additional filters
     if (status) {
       whereClause.status = status;
+    }
+    if (motherId !== undefined) {
+      whereClause.motherId = motherId;
     }
     if (isHighRisk !== undefined) {
       whereClause.isHighRisk = isHighRisk;
@@ -716,8 +735,7 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Pregnancy created successfully',
         data: {
-          ...pregnancy,
-          riskFactors: JSON.parse(pregnancy.riskFactors || '[]'),
+          pregnancyId: pregnancy.id,
         },
       },
       { status: 201 }

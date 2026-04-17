@@ -652,7 +652,7 @@ export async function POST(request: NextRequest) {
       actorRole: user.role,
       action: 'CREATE',
       resource: 'Mother',
-      resourceId: newMother.id.toString(),
+      resourceId: newMother.id,
       changesSummary: {
         fullName: trimmedFullName,
         phone: normalizedPhone,

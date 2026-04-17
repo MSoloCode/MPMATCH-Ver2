@@ -401,3 +401,347 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+/**
+ * POST /api/ancvisits
+ * Create a new ANC (Antenatal Care) visit
+ * PROTECTED - Requires valid JWT token in Authorization header
+ *
+ * Allowed roles:
+ * - DOCTOR, NURSE, MIDWIFE: Create visits in own hospital scope
+ * - DHO, ORG_ADMIN, HOSPITAL_ADMIN, SYSTEM_ADMIN: Create visits in their scope
+ *
+ * Request body:
+ * {
+ *   "pregnancyId": 1,
+ *   "motherId": 42,
+ *   "visitType": "ROUTINE|SCANNING|REVIEW|OTHER",
+ *   "visitDateTime": "2026-04-17T14:30:00Z",
+ *   "nextAppointment": "2026-05-17T14:30:00Z",
+ *   "notes": "Patient doing well",
+ *   "purposeOther": "Custom reason (required if visitType is OTHER)"
+ * }
+ *
+ * Response on success (201):
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "id": 16,
+ *     "visitNumber": 4,
+ *     "pregnancyId": 1,
+ *     "motherId": 42,
+ *     "visitType": "ROUTINE",
+ *     "visitDateTime": "2026-04-17T14:30:00Z",
+ *     "nextAppointment": "2026-05-17T14:30:00Z",
+ *     "notes": "Patient doing well",
+ *     "createdById": 10,
+ *     "createdAt": "2026-04-17T15:00:00Z"
+ *   }
+ * }
+ *
+ * Response on validation error (422):
+ * {
+ *   "success": false,
+ *   "error": "Invalid request"
+ * }
+ *
+ * Response on unauthorized (401):
+ * {
+ *   "success": false,
+ *   "error": "Unauthorized - no token provided"
+ * }
+ *
+ * Response on forbidden (403):
+ * {
+ *   "success": false,
+ *   "error": "Insufficient permissions"
+ * }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // ========================================================================
+    // 1. EXTRACT AND VALIDATE AUTHORIZATION
+    // ========================================================================
+    let user;
+    try {
+      user = extractUser(request);
+    } catch (error) {
+      if (error instanceof UnauthorizedError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: error.message,
+          },
+          { status: 401 }
+        );
+      }
+      throw error;
+    }
+
+    // ========================================================================
+    // 2. CHECK ROLE PERMISSIONS
+    // ========================================================================
+    const allowedRoles = [
+      'DOCTOR',
+      'NURSE',
+      'MIDWIFE',
+      'DHO',
+      'ORG_ADMIN',
+      'HOSPITAL_ADMIN',
+      'SYSTEM_ADMIN',
+    ];
+
+    if (!allowedRoles.includes(user.role)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Insufficient permissions to create ANC visits',
+        },
+        { status: 403 }
+      );
+    }
+
+    // ========================================================================
+    // 3. VALIDATE TENANT SCOPE
+    // ========================================================================
+    try {
+      assertValidTenantScope(user as ScopedUserPayload);
+    } catch (error) {
+      if (error instanceof ForbiddenError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: error.message,
+          },
+          { status: 403 }
+        );
+      }
+      throw error;
+    }
+
+    // ========================================================================
+    // 4. PARSE REQUEST BODY
+    // ========================================================================
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid JSON body',
+        },
+        { status: 400 }
+      );
+    }
+
+    const {
+      pregnancyId,
+      motherId,
+      visitType,
+      visitDateTime,
+      nextAppointment,
+      notes = '',
+      purposeOther = '',
+    } = body;
+
+    // ========================================================================
+    // 5. VALIDATE REQUIRED FIELDS
+    // ========================================================================
+    if (!pregnancyId || typeof pregnancyId !== 'number' || pregnancyId <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'pregnancyId is required and must be a positive integer',
+        },
+        { status: 422 }
+      );
+    }
+
+    if (!motherId || typeof motherId !== 'number' || motherId <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'motherId is required and must be a positive integer',
+        },
+        { status: 422 }
+      );
+    }
+
+    if (!visitType || !['ROUTINE', 'SCANNING', 'REVIEW', 'OTHER'].includes(visitType)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'visitType must be one of: ROUTINE, SCANNING, REVIEW, OTHER',
+        },
+        { status: 422 }
+      );
+    }
+
+    if (!visitDateTime) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'visitDateTime is required',
+        },
+        { status: 422 }
+      );
+    }
+
+    if (visitType === 'OTHER' && !purposeOther) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'purposeOther is required when visitType is OTHER',
+        },
+        { status: 422 }
+      );
+    }
+
+    // Parse dates
+    const visitDate = new Date(visitDateTime);
+    if (isNaN(visitDate.getTime())) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'visitDateTime must be a valid ISO 8601 date',
+        },
+        { status: 422 }
+      );
+    }
+
+    let nextApptDate: Date | null = null;
+    if (nextAppointment) {
+      nextApptDate = new Date(nextAppointment);
+      if (isNaN(nextApptDate.getTime())) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'nextAppointment must be a valid ISO 8601 date',
+          },
+          { status: 422 }
+        );
+      }
+    }
+
+    // ========================================================================
+    // 6. VERIFY PREGNANCY AND MOTHER EXIST AND BELONG TO USER'S SCOPE
+    // ========================================================================
+    const scopeFilter = getTenantScopingFilter(user as ScopedUserPayload);
+
+    const pregnancy = await db.pregnancy.findFirst({
+      where: {
+        id: pregnancyId,
+        motherId: motherId,
+        ...scopeFilter,
+      },
+      select: {
+        id: true,
+        motherId: true,
+        antenatalStatus: true,
+      },
+    });
+
+    if (!pregnancy) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Pregnancy not found or access denied',
+        },
+        { status: 404 }
+      );
+    }
+
+    // ========================================================================
+    // 7. GET CURRENT VISIT NUMBER FOR THIS PREGNANCY
+    // ========================================================================
+    const lastVisit = await db.ancVisit.findFirst({
+      where: {
+        pregnancyId: pregnancyId,
+        deletedAt: null,
+      },
+      orderBy: { visitNumber: 'desc' },
+      select: { visitNumber: true },
+    });
+
+    const visitNumber = (lastVisit?.visitNumber || 0) + 1;
+
+    // ========================================================================
+    // 8. CREATE ANC VISIT
+    // ========================================================================
+    const newVisit = await db.ancVisit.create({
+      data: {
+        pregnancyId,
+        motherId,
+        visitNumber,
+        visitType,
+        purposeOther: visitType === 'OTHER' ? purposeOther : null,
+        visitDateTime: visitDate,
+        nextAppointment: nextApptDate,
+        notes: notes || null,
+        createdById: user.userId,
+      },
+      select: {
+        id: true,
+        visitNumber: true,
+        pregnancyId: true,
+        motherId: true,
+        visitType: true,
+        purposeOther: true,
+        visitDateTime: true,
+        nextAppointment: true,
+        notes: true,
+        createdAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    // ========================================================================
+    // 9. LOG AUDIT (non-blocking)
+    // ========================================================================
+    const auditContext = extractAuditContext(request);
+    writeAuditLog({
+      actorId: user.userId || null,
+      actorRole: user.role,
+      action: 'CREATE',
+      resource: 'ancvisit',
+      resourceId: newVisit.id,
+      changesSummary: {
+        visitNumber: newVisit.visitNumber,
+        visitType: newVisit.visitType,
+        pregnancyId: newVisit.pregnancyId,
+        motherId: newVisit.motherId,
+      },
+      ipAddress: auditContext.ipAddress,
+      userAgent: auditContext.userAgent,
+    }).catch((error) => {
+      console.error('Failed to write audit log:', error);
+    });
+
+    // ========================================================================
+    // 10. RETURN SUCCESS RESPONSE
+    // ========================================================================
+    return NextResponse.json(
+      {
+        success: true,
+        data: newVisit,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Error in POST /api/ancvisits:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Internal server error',
+      },
+      { status: 500 }
+    );
+  }
+}

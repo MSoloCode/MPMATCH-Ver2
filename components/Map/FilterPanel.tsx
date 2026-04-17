@@ -11,7 +11,7 @@ interface FilterPanelProps {
   onOpenAlertsToggle: (value: boolean) => void;
 }
 
-export function FilterPanel({
+export default function FilterPanel({
   showFacilities,
   onFacilitiesToggle,
   showHighRiskMothers,

@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     let user: ScopedUserPayload;
     try {
-      user = extractUser(request);
+      user = extractUser(request) as ScopedUserPayload;
     } catch (error) {
       if (error instanceof UnauthorizedError) {
         return NextResponse.json(
@@ -183,14 +183,16 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     // 7. WRITE AUDIT LOG
     // ========================================================================
+    const auditContext = extractAuditContext(request);
     await writeAuditLog({
-      userId: user.id,
+      actorId: user.id || user.userId || null,
+      actorRole: user.role,
       action: 'READ_SENSITIVE',
       resource: 'facility',
       resourceId: null,
-      details: `Retrieved ${formattedFacilities.length} geo-located facilities`,
-      ipAddress: extractAuditContext(request).ipAddress,
-      userAgent: extractAuditContext(request).userAgent,
+      changesSummary: `Retrieved ${formattedFacilities.length} geo-located facilities`,
+      ipAddress: auditContext.ipAddress,
+      userAgent: auditContext.userAgent,
     });
 
     // ========================================================================

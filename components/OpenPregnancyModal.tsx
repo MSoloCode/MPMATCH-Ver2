@@ -389,10 +389,10 @@ export default function OpenPregnancyModal({
               label: `${m.fullName} (${m.phone})`,
             }))}
             value={formData.motherId.toString()}
-            onChange={(value) =>
+            onChange={(e) =>
               setFormData((prev) => ({
                 ...prev,
-                motherId: value ? parseInt(value, 10) : '',
+                motherId: e.target.value ? parseInt(e.target.value, 10) : '',
               }))
             }
             error={errors.motherId}
@@ -403,10 +403,10 @@ export default function OpenPregnancyModal({
             label="LMP Date"
             required
             value={formData.lmpDate}
-            onChange={(value) =>
+            onChange={(e) =>
               setFormData((prev) => ({
                 ...prev,
-                lmpDate: value,
+                lmpDate: e.target.value,
               }))
             }
             error={errors.lmpDate}

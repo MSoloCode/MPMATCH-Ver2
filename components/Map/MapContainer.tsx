@@ -43,7 +43,7 @@ interface MapContainerProps {
   showOpenAlerts: boolean;
 }
 
-export function MapContainer({
+export default function MapContainer({
   showFacilities,
   showHighRiskMothers,
   showOpenAlerts,
