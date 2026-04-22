@@ -25,6 +25,9 @@ datasource db {
 // AlertType: MANUAL_EMERGENCY | HIGH_RISK_BP | DANGER_SIGN | COMMUNITY_REQUEST
 // AlertStatus: OPEN | ACKNOWLEDGED | CLOSED
 // AppointmentStatus: SCHEDULED | CONFIRMED | MISSED | LIKELY_MISSED | CANCELLED | ATTENDED
+// TaskType: CHW_FOLLOWUP | MOTHER_FOLLOWUP | CLINICAL_REVIEW | OTHER
+// TaskPriority: LOW | MEDIUM | HIGH
+// TaskStatus: OPEN | IN_PROGRESS | COMPLETED | CANCELLED
 // ReferralUrgency: ROUTINE | URGENT | EMERGENCY
 // ReferralStatus: PENDING | ACCEPTED | COMPLETED | DECLINED
 // ClinicalArchiveType: TEST_RESULT | IMAGING | MEDICATION | PROCEDURE | OTHER
@@ -102,6 +105,7 @@ model User {
   role          String  // SYSTEM_ADMIN|HOSPITAL_ADMIN|ORG_ADMIN|DHO|DOCTOR|MIDWIFE|NURSE|CHW|AMBULANCE_MANAGER|COMMUNITY_USER
   isActive      Boolean @default(true)
   phone         String?
+  motherId      Int?    @unique // For COMMUNITY_USER linking to their Mother record
   hospitalId    Int?
   countryId     Int?
   orgId         Int?
@@ -109,6 +113,7 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  mother          Mother? @relation("CommunityUser", fields: [motherId], references: [id], onDelete: SetNull)
   country         Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
   district        District? @relation(fields: [districtId], references: [id], onDelete: SetNull)
   hospital        Hospital? @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
@@ -127,6 +132,8 @@ model User {
   mothersRegistered    Mother[] @relation("RegisteredBy")
   chws                 Mother[] @relation("CHW")
   appointmentsCHW      Appointment[] @relation("AssignedCHW")
+  tasksCreated         Task[] @relation("TaskCreatedBy")
+  tasksAssigned        Task[] @relation("TaskAssignedTo")
   aiChatLogs           AiChatLog[]
   auditLogs            AuditLog[]
   consentRecords       ConsentRecord[]
@@ -190,6 +197,7 @@ model Mother {
   registeredBy    User? @relation("RegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
   chw             User? @relation("CHW", fields: [chwId], references: [id], onDelete: SetNull)
   country         Country @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  communityUser   User? @relation("CommunityUser")
 
   pregnancies     Pregnancy[]
   ancVisits       AncVisit[]
@@ -416,6 +424,7 @@ model Appointment {
   ancVisit    AncVisit? @relation(fields: [ancVisitId], references: [id], onDelete: SetNull)
   assignedCHW User? @relation("AssignedCHW", fields: [assignedCHWId], references: [id], onDelete: SetNull)
   createdBy   User @relation("CreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  tasks       Task[] @relation("AppointmentTasks")
 
   @@index([motherId])
   @@index([pregnancyId])
@@ -424,6 +433,32 @@ model Appointment {
   @@index([appointmentDateTime])
   @@index([assignedCHWId])
   @@map("appointments")
+}
+
+model Task {
+  id            Int     @id @default(autoincrement())
+  appointmentId Int?
+  title         String
+  description   String?
+  type          String  // CHW_FOLLOWUP|MOTHER_FOLLOWUP|CLINICAL_REVIEW|OTHER
+  priority      String  @default("MEDIUM") // LOW|MEDIUM|HIGH
+  status        String  @default("OPEN") // OPEN|IN_PROGRESS|COMPLETED|CANCELLED
+  assignedToId  Int?    // CHW or staff member
+  createdById   Int?    // Nullable for system-initiated tasks
+  dueDate       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  appointment Appointment? @relation("AppointmentTasks", fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdBy   User? @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  assignedTo  User? @relation("TaskAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([appointmentId])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([dueDate])
+  @@index([type])
+  @@map("tasks")
 }
 
 model Referral {
@@ -468,6 +503,13 @@ model ClinicalArchive {
   uploadedById    Int
   createdAt       DateTime @default(now())
   deletedAt       DateTime?
+  // File upload metadata
+  originalName    String?
+  storedName      String?
+  mimeType        String?
+  sizeBytes       BigInt?
+  uploadedAt      DateTime?
+  storageUrl      String?
 
   pregnancy   Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
   mother      Mother @relation(fields: [motherId], references: [id], onDelete: Cascade)
@@ -507,7 +549,7 @@ model ReminderSchedule {
   ancVisitId  Int?
   motherId    Int
   sendAt      DateTime
-  type        String  // SMS|EMAIL|PUSH
+  type        String  // ANC_REMINDER (SMS sent 24h before appointment)
   status      String  @default("PENDING") // PENDING|SENT|FAILED
   sentAt      DateTime?
   errorLog    String?

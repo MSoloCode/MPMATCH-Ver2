@@ -63,11 +63,11 @@ interface ObstetricHistory {
 
 interface ClinicalArchive {
   id: number;
-  type: string;
+  type: 'TEST_RESULT' | 'IMAGING' | 'MEDICATION' | 'PROCEDURE' | 'OTHER';
   title: string;
-  datePerformed?: string;
-  notes?: string;
-  fileUrl?: string;
+  datePerformed: string | null;
+  notes: string | null;
+  fileUrl: string;
   uploadedById: number;
   createdAt: string;
   uploadedBy?: {

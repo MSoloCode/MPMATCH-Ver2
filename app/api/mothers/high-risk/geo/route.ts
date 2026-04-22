@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     // 2. VALIDATE TENANT SCOPE
     // ========================================================================
     try {
-      assertValidTenantScope(user);
+      assertValidTenantScope(user as any);
     } catch (error) {
       if (error instanceof ForbiddenError) {
         return NextResponse.json(
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     // 4. GET TENANT SCOPING FILTER
     // ========================================================================
-    const scopeFilter = getTenantScopingFilter(user);
+    const scopeFilter = getTenantScopingFilter(user as any);
 
     // ========================================================================
     // 5. FETCH HIGH-RISK MOTHERS WITH GEO COORDINATES

@@ -110,7 +110,7 @@ import { writeAuditLog, extractAuditContext } from '@/lib/audit';
  */
 export async function GET(
   request: NextRequest,
-  { params: resolvedParams }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // ========================================================================
@@ -177,6 +177,7 @@ export async function GET(
     // ========================================================================
     // 4. PARSE AND VALIDATE ID PARAMETER
     // ========================================================================
+    const resolvedParams = await params;
     const visitId = parseInt(resolvedParams.id, 10);
     if (isNaN(visitId) || visitId <= 0) {
       return NextResponse.json(
@@ -236,7 +237,6 @@ export async function GET(
           },
         },
         vitals: {
-          where: { deletedAt: null },
           select: {
             id: true,
             ancVisitId: true,
@@ -252,7 +252,6 @@ export async function GET(
           },
         },
         symptoms: {
-          where: { deletedAt: null },
           select: {
             id: true,
             ancVisitId: true,
@@ -385,7 +384,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params: resolvedParams }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // ========================================================================
@@ -449,6 +448,7 @@ export async function PATCH(
     // ========================================================================
     // 4. PARSE AND VALIDATE ID PARAMETER
     // ========================================================================
+    const resolvedParams = await params;
     const visitId = parseInt(resolvedParams.id, 10);
     if (isNaN(visitId) || visitId <= 0) {
       return NextResponse.json(
@@ -730,7 +730,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params: resolvedParams }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // ========================================================================
@@ -786,6 +786,7 @@ export async function DELETE(
     // ========================================================================
     // 4. PARSE AND VALIDATE ID PARAMETER
     // ========================================================================
+    const resolvedParams = await params;
     const visitId = parseInt(resolvedParams.id, 10);
     if (isNaN(visitId) || visitId <= 0) {
       return NextResponse.json(

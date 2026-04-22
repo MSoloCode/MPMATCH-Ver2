@@ -543,6 +543,7 @@ export async function POST(request: NextRequest) {
       nextAppointment,
       notes = '',
       purposeOther = '',
+      vitals,
     } = body;
 
     // ========================================================================
@@ -596,6 +597,100 @@ export async function POST(request: NextRequest) {
         },
         { status: 422 }
       );
+    }
+
+    // ========================================================================
+    // 5b. VALIDATE VITALS (if provided)
+    // ========================================================================
+    if (vitals) {
+      const { systolicBP, diastolicBP, bpNotTaken, temperatureC, weightKg, pulseBpm, respRate, oxygenSatPct } = vitals;
+
+      // BP validation: Must have both systolic and diastolic OR bpNotTaken must be true
+      if (!bpNotTaken) {
+        if (systolicBP === undefined || systolicBP === null || systolicBP === '') {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'systolicBP is required unless bpNotTaken is true',
+            },
+            { status: 422 }
+          );
+        }
+        if (diastolicBP === undefined || diastolicBP === null || diastolicBP === '') {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'diastolicBP is required unless bpNotTaken is true',
+            },
+            { status: 422 }
+          );
+        }
+        if (typeof systolicBP !== 'number' || systolicBP <= 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'systolicBP must be a positive number',
+            },
+            { status: 422 }
+          );
+        }
+        if (typeof diastolicBP !== 'number' || diastolicBP <= 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'diastolicBP must be a positive number',
+            },
+            { status: 422 }
+          );
+        }
+      }
+
+      // Validate optional numeric fields (allow null/undefined, but if provided must be valid numbers)
+      if (temperatureC !== undefined && temperatureC !== null && typeof temperatureC !== 'number') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'temperatureC must be a number',
+          },
+          { status: 422 }
+        );
+      }
+      if (weightKg !== undefined && weightKg !== null && typeof weightKg !== 'number') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'weightKg must be a number',
+          },
+          { status: 422 }
+        );
+      }
+      if (pulseBpm !== undefined && pulseBpm !== null && typeof pulseBpm !== 'number') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'pulseBpm must be a number',
+          },
+          { status: 422 }
+        );
+      }
+      if (respRate !== undefined && respRate !== null && typeof respRate !== 'number') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'respRate must be a number',
+          },
+          { status: 422 }
+        );
+      }
+      if (oxygenSatPct !== undefined && oxygenSatPct !== null && typeof oxygenSatPct !== 'number') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'oxygenSatPct must be a number',
+          },
+          { status: 422 }
+        );
+      }
     }
 
     // Parse dates
@@ -703,7 +798,66 @@ export async function POST(request: NextRequest) {
     });
 
     // ========================================================================
-    // 9. LOG AUDIT (non-blocking)
+    // 8b. CREATE VITALS RECORD (if vitals data provided)
+    // ========================================================================
+    let createdVitals = null;
+    if (vitals) {
+      const { systolicBP, diastolicBP, bpNotTaken, temperatureC, weightKg, pulseBpm, respRate, oxygenSatPct } = vitals;
+      
+      createdVitals = await db.vitals.create({
+        data: {
+          ancVisitId: newVisit.id,
+          pregnancyId: pregnancyId,
+          motherId: motherId,
+          systolicBP: bpNotTaken ? null : systolicBP,
+          diastolicBP: bpNotTaken ? null : diastolicBP,
+          bpNotTaken: !!bpNotTaken,
+          temperatureC: temperatureC || null,
+          weightKg: weightKg || null,
+          pulseBpm: pulseBpm || null,
+          respRate: respRate || null,
+          oxygenSatPct: oxygenSatPct || null,
+          createdById: user.userId,
+        },
+        select: {
+          id: true,
+          ancVisitId: true,
+          systolicBP: true,
+          diastolicBP: true,
+          bpNotTaken: true,
+          temperatureC: true,
+          weightKg: true,
+          pulseBpm: true,
+          respRate: true,
+          oxygenSatPct: true,
+          createdAt: true,
+        },
+      });
+    }
+
+    // ========================================================================
+    // 9. CREATE REMINDER SCHEDULE (if nextAppointment is set)
+    // ========================================================================
+    if (nextApptDate) {
+      // Calculate sendAt as 24 hours before the appointment
+      const sendAtTime = new Date(nextApptDate.getTime() - 24 * 60 * 60 * 1000);
+
+      db.reminderSchedule.create({
+        data: {
+          ancVisitId: newVisit.id,
+          motherId: motherId,
+          sendAt: sendAtTime,
+          type: 'ANC_REMINDER',
+          status: 'PENDING',
+        },
+      }).catch((error) => {
+        console.error('Failed to create reminder schedule:', error);
+        // Don't block visit creation on reminder creation failure
+      });
+    }
+
+    // ========================================================================
+    // 10. LOG AUDIT (non-blocking)
     // ========================================================================
     const auditContext = extractAuditContext(request);
     writeAuditLog({
@@ -717,6 +871,7 @@ export async function POST(request: NextRequest) {
         visitType: newVisit.visitType,
         pregnancyId: newVisit.pregnancyId,
         motherId: newVisit.motherId,
+        nextAppointment: newVisit.nextAppointment,
       },
       ipAddress: auditContext.ipAddress,
       userAgent: auditContext.userAgent,
@@ -725,12 +880,15 @@ export async function POST(request: NextRequest) {
     });
 
     // ========================================================================
-    // 10. RETURN SUCCESS RESPONSE
+    // 12. RETURN SUCCESS RESPONSE
     // ========================================================================
     return NextResponse.json(
       {
         success: true,
-        data: newVisit,
+        data: {
+          ...newVisit,
+          vitals: createdVitals,
+        },
       },
       { status: 201 }
     );

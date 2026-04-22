@@ -13,6 +13,7 @@ interface NavItem {
 
 const OVERVIEW_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: 'DYNAMIC', roles: undefined },
+  { label: 'My Records', href: '/my-records', roles: ['COMMUNITY_USER'] },
   { label: 'AI Chat', href: '/ai-chat' },
   { label: 'Map', href: '/map' },
 ];
@@ -119,19 +120,24 @@ export default function Sidebar() {
               Overview
             </h3>
             <div className="space-y-1">
-              {OVERVIEW_ITEMS.map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => handleNavClick(item.href)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center gap-3 ${
-                    (item.href === 'DYNAMIC' ? isDashboardActive : isPathActive(item.href))
-                      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600 font-semibold'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span>{item.label}</span>
-                </button>
-              ))}
+              {OVERVIEW_ITEMS.map((item) => {
+                const shouldShow = !item.roles || item.roles.includes(role);
+                if (!shouldShow) return null;
+
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => handleNavClick(item.href)}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center gap-3 ${
+                      (item.href === 'DYNAMIC' ? isDashboardActive : isPathActive(item.href))
+                        ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600 font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

@@ -68,6 +68,35 @@ export interface GeoLocation {
   timestamp?: Date;
 }
 
+export interface Referral {
+  id: number;
+  motherId: number;
+  pregnancyId: number | null;
+  mother: {
+    id: number;
+    fullName: string;
+    phone: string;
+  };
+  fromFacility: {
+    id: number;
+    name: string;
+  };
+  toFacility: {
+    id: number;
+    name: string;
+  };
+  reason: string | null;
+  urgency: string;
+  status: string;
+  statusNotes: string | null;
+  createdAt: string;
+  createdBy: {
+    id: number;
+    name: string;
+    role: string;
+  };
+}
+
 export interface AuditLog {
   id: ID;
   userId: ID;
@@ -112,3 +141,60 @@ export interface EmergencyAlertResponse {
   alertId?: number;
   error?: string;
 }
+
+// ============================================================================
+// APPOINTMENT TYPES
+// ============================================================================
+
+export type AppointmentStatus =
+  | 'SCHEDULED'
+  | 'CONFIRMED'
+  | 'ATTENDED'
+  | 'MISSED'
+  | 'LIKELY_MISSED'
+  | 'CANCELLED';
+
+export type AppointmentPurpose = 'ROUTINE' | 'SCANNING' | 'REVIEW' | 'OTHER';
+
+export interface Appointment {
+  id: number;
+  motherId: number;
+  pregnancyId: number | null;
+  ancVisitId: number | null;
+  appointmentDateTime: string | Date;
+  purpose: AppointmentPurpose;
+  purposeOther: string | null;
+  status: AppointmentStatus;
+  assignedCHWId: number | null;
+  notes: string | null;
+  createdById: number;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface AppointmentWithRelations extends Appointment {
+  mother?: {
+    id: number;
+    fullName: string;
+    phone: string;
+  };
+  pregnancy?: {
+    id: number;
+    status: string;
+  };
+  ancVisit?: {
+    id: number;
+    visitNumber: number;
+  };
+  assignedCHW?: {
+    id: number;
+    name: string;
+    role: string;
+  };
+  createdBy?: {
+    id: number;
+    name: string;
+    role: string;
+  };
+}
+
