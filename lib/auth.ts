@@ -1,23 +1,16 @@
 import jwt, { JwtPayload, SignOptions, VerifyOptions } from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
+import {
+  ApiError,
+  UnauthorizedError,
+  ForbiddenError,
+} from "./api-error";
 
 // ============================================================================
-// ERROR CLASSES
+// ERROR CLASSES (re-exported from api-error.ts for backward compatibility)
 // ============================================================================
 
-export class UnauthorizedError extends Error {
-  constructor(message: string = "Unauthorized") {
-    super(message);
-    this.name = "UnauthorizedError";
-  }
-}
-
-export class ForbiddenError extends Error {
-  constructor(message: string = "Forbidden") {
-    super(message);
-    this.name = "ForbiddenError";
-  }
-}
+export { ApiError, UnauthorizedError, ForbiddenError } from "./api-error";
 
 // ============================================================================
 // JWT TOKEN HELPERS
@@ -94,12 +87,12 @@ export function verifyToken(token: string): JwtPayload {
     return decoded as JwtPayload;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw new UnauthorizedError("Token has expired");
+      throw new ApiError(401, "Token has expired");
     }
     if (error instanceof jwt.JsonWebTokenError) {
-      throw new UnauthorizedError("Invalid token");
+      throw new ApiError(401, "Invalid token");
     }
-    throw new UnauthorizedError("Failed to verify token");
+    throw new ApiError(401, "Failed to verify token");
   }
 }
 

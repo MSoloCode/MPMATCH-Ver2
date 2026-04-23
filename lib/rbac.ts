@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, ForbiddenError, UnauthorizedError } from "./auth";
+import { verifyToken } from "./auth";
+import {
+  ApiError,
+  UnauthorizedError,
+  ForbiddenError,
+} from "./api-error";
+import { getToken } from "./cookies";
 import { db } from "./db";
 
-// Re-export error classes for use in API routes
-export { ForbiddenError, UnauthorizedError } from "./auth";
+// Re-export error classes for use in API routes (from api-error for backward compatibility)
+export { ApiError, UnauthorizedError, ForbiddenError } from "./api-error";
 
 // ============================================================================
 // TYPES
@@ -523,7 +529,8 @@ export function assertValidTenantScope(user: ScopedUserPayload): void {
     ["HOSPITAL_ADMIN", "DOCTOR", "MIDWIFE", "NURSE"].includes(role) &&
     !user.hospitalId
   ) {
-    throw new ForbiddenError(
+    throw new ApiError(
+      403,
       `User with role ${role} is missing required hospitalId in token`
     );
   }
@@ -532,7 +539,8 @@ export function assertValidTenantScope(user: ScopedUserPayload): void {
     ["ORG_ADMIN", "DHO", "CHW", "AMBULANCE_MANAGER"].includes(role) &&
     !user.districtId
   ) {
-    throw new ForbiddenError(
+    throw new ApiError(
+      403,
       `User with role ${role} is missing required districtId in token`
     );
   }
@@ -543,85 +551,280 @@ export function assertValidTenantScope(user: ScopedUserPayload): void {
 // ============================================================================
 
 /**
- * Middleware factory that checks if the authenticated user has one of the specified roles.
- * Extracts Bearer token from Authorization header, verifies it, and attaches user to request.
- * Returns 401 for missing/invalid token, 403 for insufficient role.
+ * Middleware factory that wraps Next.js API route handlers with role-based access control.
+ * Extracts and verifies JWT token, checks role permissions, validates tenant scope,
+ * and attaches decoded user payload to request.user.
  *
- * Usage:
- *   export const middleware = requireRole('DOCTOR', 'NURSE');
- *   export const config = {
- *     matcher: '/api/pregnancies/:path*',
- *   };
+ * Returns 401 for missing/invalid token, 403 for insufficient role or invalid tenant scope.
  *
- * @param allowedRoles - Role(s) that are allowed to access the resource
- * @returns Middleware function for Next.js
+ * IMPORTANT: Tenant scoping is NOT automatically enforced at the query level.
+ * All Prisma queries in your handler MUST manually apply getTenantScopingFilter()
+ * to their WHERE clauses to ensure data isolation.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ * USAGE EXAMPLES
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *
+ * MODERN PATTERN (Recommended - NextRequest/NextResponse):
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ *
+ *   import { requireRole, getTenantScopingFilter } from '@/lib/rbac';
+ *
+ *   export default requireRole('DOCTOR', 'NURSE', 'MIDWIFE')(
+ *     async (request: NextRequest) => {
+ *       // request.user is now populated and verified:
+ *       // { userId, role, hospitalId, countryId, districtId }
+ *
+ *       const { searchParams } = new URL(request.url);
+ *       const status = searchParams.get('status') || 'ACTIVE';
+ *
+ *       // CRITICAL: Manually apply tenant scoping to your query
+ *       const scopeFilter = getTenantScopingFilter(request.user);
+ *
+ *       const pregnancies = await db.pregnancy.findMany({
+ *         where: {
+ *           ...scopeFilter,      // ← Automatically applies { hospitalId: user.hospitalId }
+ *           status,
+ *         },
+ *       });
+ *
+ *       return NextResponse.json({ success: true, data: pregnancies });
+ *     }
+ *   );
+ *
+ * LEGACY PATTERN (API Route Handler with req/res):
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ *
+ *   import { requireRole, getTenantScopingFilter } from '@/lib/rbac';
+ *
+ *   export default requireRole('HOSPITAL_ADMIN')(
+ *     async (req: any, res: any) => {
+ *       // req.user is now populated and verified
+ *       const { hospitalId } = req.user;
+ *
+ *       const scopeFilter = getTenantScopingFilter(req.user);
+ *       const users = await db.user.findMany({
+ *         where: { ...scopeFilter },
+ *       });
+ *
+ *       res.status(200).json({ success: true, data: users });
+ *     }
+ *   );
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ * REQUEST.USER STRUCTURE
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *
+ * The decoded JWT payload is attached to request.user with the following structure:
+ *
+ *   interface ScopedUserPayload {
+ *     userId?: number;        // User ID from the database
+ *     role: string;           // One of: SYSTEM_ADMIN, HOSPITAL_ADMIN, DOCTOR, MIDWIFE, NURSE, DHO, ORG_ADMIN, CHW, AMBULANCE_MANAGER, COMMUNITY_USER
+ *     hospitalId?: number;    // Required for: HOSPITAL_ADMIN, DOCTOR, MIDWIFE, NURSE
+ *     districtId?: number;    // Required for: ORG_ADMIN, DHO, CHW, AMBULANCE_MANAGER
+ *     motherId?: number;      // Required for: COMMUNITY_USER
+ *     countryId?: number;     // Optional for all roles
+ *     phone?: string;         // Optional user phone
+ *     iat?: number;           // Issued at (Unix timestamp)
+ *     exp?: number;           // Expiration (Unix timestamp)
+ *   }
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ * ERROR RESPONSES
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ *
+ * 401 Unauthorized (Missing or Invalid Token):
+ *   { success: false, error: 'Unauthorized - missing or invalid token' }
+ *
+ * 403 Forbidden (Role Mismatch):
+ *   { success: false, error: 'Insufficient permissions' }
+ *   User authenticated but not in allowedRoles list.
+ *
+ * 403 Forbidden (Invalid Tenant Scope):
+ *   { success: false, error: 'Invalid tenant scope: hospitalId required' }
+ *   User authenticated and role is allowed, but user is missing required scoping field.
+ *   This indicates a malformed JWT token.
+ *
+ * @param allowedRoles - One or more role strings that are authorized for this handler
+ * @returns Handler wrapper function that returns either:
+ *          - NextResponse for modern pattern (NextRequest → NextResponse)
+ *          - Promise<void> for legacy pattern (req, res) → void
+ *
+ * @example
+ * // Restrict to DOCTOR role only
+ * export default requireRole('DOCTOR')(handler);
+ *
+ * @example
+ * // Allow multiple roles
+ * export default requireRole('DOCTOR', 'NURSE', 'MIDWIFE')(handler);
+ *
+ * @throws Will call error handlers and return appropriate HTTP response codes
  */
 export function requireRole(...allowedRoles: string[]) {
-  return async (
-    request: AuthenticatedRequest,
-    response: NextResponse
-  ): Promise<NextResponse> => {
+  return function wrappedHandler(
+    handler: any
+  ): any {
+    return async (...args: any[]) => {
+      // Detect handler type based on arguments
+      const isModernPattern = args[0]?.constructor?.name === 'NextRequest';
+
+      if (isModernPattern) {
+        // Modern pattern: NextRequest handler
+        const request = args[0] as NextRequest;
+        return handleModernPattern(request, handler, allowedRoles);
+      } else {
+        // Legacy pattern: (req, res) handler
+        const req = args[0];
+        const res = args[1];
+        return handleLegacyPattern(req, res, handler, allowedRoles);
+      }
+    };
+  };
+}
+
+/**
+ * Internal handler for modern NextRequest/NextResponse pattern
+ * @internal
+ */
+async function handleModernPattern(
+  request: NextRequest,
+  handler: (request: NextRequest) => Promise<NextResponse>,
+  allowedRoles: string[]
+): Promise<NextResponse> {
+  try {
+    // 1. Extract token from Authorization header or cookie
+    const token = getToken(request);
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - missing or invalid token' },
+        { status: 401 }
+      );
+    }
+
+    // 2. Verify token and extract user
+    let user: ScopedUserPayload;
     try {
-      // Extract Authorization header
-      const authHeader = request.headers.get("authorization");
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      user = verifyToken(token) as ScopedUserPayload;
+    } catch (error) {
+      if (error instanceof UnauthorizedError) {
         return NextResponse.json(
-          {
-            success: false,
-            error: "Unauthorized",
-            message: "Missing or invalid Authorization header",
-          },
+          { success: false, error: 'Unauthorized - missing or invalid token' },
           { status: 401 }
         );
       }
+      throw error;
+    }
 
-      // Extract and verify token
-      const token = authHeader.substring(7); // Remove "Bearer " prefix
-      let user;
-      try {
-        user = verifyToken(token);
-      } catch (error) {
-        if (error instanceof UnauthorizedError) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "Unauthorized",
-              message: error.message,
-            },
-            { status: 401 }
-          );
-        }
-        throw error;
-      }
+    // 3. Check if user's role is in allowed roles
+    if (!allowedRoles.includes(user.role)) {
+      return NextResponse.json(
+        { success: false, error: 'Insufficient permissions' },
+        { status: 403 }
+      );
+    }
 
-      // Check if user's role is in allowed roles
-      if (!allowedRoles.includes(user.role as string)) {
+    // 4. Validate tenant scoping
+    try {
+      assertValidTenantScope(user);
+    } catch (error) {
+      if (error instanceof ForbiddenError) {
         return NextResponse.json(
-          {
-            success: false,
-            error: "Forbidden",
-            message: "Insufficient permissions for this resource",
-          },
+          { success: false, error: error.message },
           { status: 403 }
         );
       }
-
-      // Attach user to request for downstream handlers
-      (request as any).user = user;
-
-      return NextResponse.next();
-    } catch (error) {
-      console.error("Middleware error:", error);
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Internal Server Error",
-          message: "An error occurred during authentication",
-        },
-        { status: 500 }
-      );
+      throw error;
     }
-  };
+
+    // 5. Attach user to request object
+    (request as any).user = user;
+
+    // 6. Call wrapped handler
+    return await handler(request);
+  } catch (error) {
+    console.error('[requireRole] Middleware error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Internal handler for legacy (req, res) pattern
+ * @internal
+ */
+async function handleLegacyPattern(
+  req: any,
+  res: any,
+  handler: (req: any, res: any) => Promise<void>,
+  allowedRoles: string[]
+): Promise<void> {
+  try {
+    // 1. Extract token from Authorization header
+    const authHeader = req.headers.authorization;
+    let token: string | null = null;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (req.cookies?.mpmatch_token) {
+      token = req.cookies.mpmatch_token;
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized - missing or invalid token',
+      });
+    }
+
+    // 2. Verify token and extract user
+    let user: ScopedUserPayload;
+    try {
+      user = verifyToken(token) as ScopedUserPayload;
+    } catch (error) {
+      if (error instanceof UnauthorizedError) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized - missing or invalid token',
+        });
+      }
+      throw error;
+    }
+
+    // 3. Check if user's role is in allowed roles
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions',
+      });
+    }
+
+    // 4. Validate tenant scoping
+    try {
+      assertValidTenantScope(user);
+    } catch (error) {
+      if (error instanceof ForbiddenError) {
+        return res.status(403).json({
+          success: false,
+          error: error.message,
+        });
+      }
+      throw error;
+    }
+
+    // 5. Attach user to request object
+    req.user = user;
+
+    // 6. Call wrapped handler
+    return await handler(req, res);
+  } catch (error) {
+    console.error('[requireRole] Middleware error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+    });
+  }
 }
 
 /**
@@ -647,17 +850,17 @@ export function extractBearerToken(request: Request): string | null {
 export function extractUser(request: Request): Record<string, any> {
   const token = extractBearerToken(request);
   if (!token) {
-    throw new UnauthorizedError("Missing or invalid Authorization header");
+    throw new ApiError(401, "Missing or invalid Authorization header");
   }
 
   try {
     const user = verifyToken(token);
     return user;
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (error instanceof ApiError) {
       throw error;
     }
-    throw new UnauthorizedError("Failed to verify token");
+    throw new ApiError(401, "Failed to verify token");
   }
 }
 
