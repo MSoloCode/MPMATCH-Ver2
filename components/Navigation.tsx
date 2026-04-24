@@ -49,8 +49,8 @@ const primaryNavItems = [
 const secondaryNavItems = [
   { label: 'Security', href: '/security' },
   { label: 'Emergency', href: '/emergency' },
-  { label: 'Chat with AI', href: '/chat' },
-  { label: 'Sign in', href: '/signin' },
+  { label: 'Chat with AI', href: '/ai-chat' },
+  { label: 'Sign in', href: '/sign-in' },
 ];
 
 const Navigation: React.FC = () => {
