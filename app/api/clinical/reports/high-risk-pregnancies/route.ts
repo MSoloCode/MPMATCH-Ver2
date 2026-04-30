@@ -6,7 +6,7 @@ interface HighRiskPregnancyData {
   pregnancyId: number;
   motherId: number;
   motherName: string;
-  phone: string;
+  phone: string | null;
   lmpDate: string | null;
   edd: string | null;
   riskFactors: string[];

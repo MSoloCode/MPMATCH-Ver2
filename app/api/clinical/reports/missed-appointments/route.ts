@@ -5,7 +5,7 @@ import { authenticateRequest } from '@/lib/auth-helpers';
 interface MissedAppointmentData {
   motherId: number;
   motherName: string;
-  phone: string;
+  phone: string | null;
   lastMissedDate: string;
   missedCount: number;
   dates: Array<{
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<MissedAppo
       number,
       {
         name: string;
-        phone: string;
+        phone: string | null;
         missedDates: Date[];
       }
     >();

@@ -314,8 +314,20 @@ export default function SignInPage() {
             </p>
           </div>
 
+          {/* Sign Up Link */}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link href="/register">
+                <span className="text-blue-900 font-semibold hover:text-blue-800 cursor-pointer transition-colors">
+                  Sign up
+                </span>
+              </Link>
+            </p>
+          </div>
+
           {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-gray-200 text-center text-xs text-gray-600">
+          <div className="mt-6 pt-6 border-t border-gray-200 text-center text-xs text-gray-600">
             <p>© 2026 MPMATCH LINKS AFRICA</p>
             <p className="mt-1">Designed for Africa • Uganda theme</p>
           </div>

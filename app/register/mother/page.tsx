@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/Button';
 import { TextInput, PhoneInput, SelectDropdown, Checkbox } from '@/components/FormInputs';
 import { TERMS_AND_CONDITIONS } from '@/app/terms';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface District {
   id: number;
@@ -18,6 +19,9 @@ interface FormData {
   phone: string;
   districtId: string;
   village: string;
+  username: string;
+  password: string;
+  confirmPassword: string;
 }
 
 interface Errors {
@@ -25,6 +29,9 @@ interface Errors {
   phone?: string;
   districtId?: string;
   village?: string;
+  username?: string;
+  password?: string;
+  confirmPassword?: string;
   consent?: string;
   general?: string;
 }
@@ -38,6 +45,9 @@ export default function MotherRegisterPage() {
     phone: '',
     districtId: '',
     village: '',
+    username: '',
+    password: '',
+    confirmPassword: '',
   });
   const [errors, setErrors] = useState<Errors>({});
   const [districts, setDistricts] = useState<District[]>([]);
@@ -45,6 +55,8 @@ export default function MotherRegisterPage() {
   const [consentScrolled, setConsentScrolled] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const termsBoxRef = useRef<HTMLDivElement>(null);
 
   // If already authenticated, redirect to dashboard
@@ -78,8 +90,19 @@ export default function MotherRegisterPage() {
   // FORM VALIDATION HELPERS
   // ========================================================================
   const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^(07\d{6}|\+256[0-9]{9})$/;
+    const phoneRegex = /^0[0-9]{9}$/;
     return phoneRegex.test(phone.trim());
+  };
+
+  const validateUsername = (username: string): boolean => {
+    // Username: 3-20 chars, alphanumeric + underscore, starts with letter
+    const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
+    return usernameRegex.test(username.trim());
+  };
+
+  const validatePassword = (password: string): boolean => {
+    // At least 8 characters
+    return password.length >= 8;
   };
 
   const validateStep1 = (): boolean => {
@@ -99,6 +122,27 @@ export default function MotherRegisterPage() {
 
     if (!formData.districtId) {
       newErrors.districtId = 'District is required';
+    }
+
+    // Username validation
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (!validateUsername(formData.username)) {
+      newErrors.username = 'Username must be 3-20 chars, start with a letter, contain only letters, numbers, and underscore';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (!validatePassword(formData.password)) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
@@ -157,6 +201,8 @@ export default function MotherRegisterPage() {
           phone: formData.phone.trim(),
           districtId: parseInt(formData.districtId, 10),
           village: formData.village.trim() || null,
+          username: formData.username.trim(),
+          password: formData.password,
         }),
       });
 
@@ -284,6 +330,100 @@ export default function MotherRegisterPage() {
                 onChange={(e) => setFormData({ ...formData, village: e.target.value })}
                 helperText="This helps us provide more localized care"
               />
+
+              {/* Username Input */}
+              <TextInput
+                label="Username"
+                placeholder="Choose a username (3-20 characters)"
+                value={formData.username}
+                onChange={(e) => {
+                  setFormData({ ...formData, username: e.target.value });
+                  if (errors.username) setErrors({ ...errors, username: undefined });
+                }}
+                error={errors.username}
+                required
+                helperText="3-20 characters, start with a letter, use letters, numbers, or underscore only"
+              />
+
+              {/* Password Input */}
+              <div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-neutral-900">
+                    Password <span className="text-red-600 ml-1">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter a password (at least 8 characters)"
+                      value={formData.password}
+                      onChange={(e) => {
+                        setFormData({ ...formData, password: e.target.value });
+                        if (errors.password) setErrors({ ...errors, password: undefined });
+                      }}
+                      className={`
+                        w-full px-3 py-2 pr-10 bg-white rounded-lg
+                        border border-neutral-300
+                        text-neutral-900 text-sm
+                        placeholder-neutral-500
+                        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                        transition-colors
+                        ${errors.password ? 'border-red-600 focus:ring-red-600' : ''}
+                      `}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <span className="text-sm text-red-600">{errors.password}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Confirm Password Input */}
+              <div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-neutral-900">
+                    Confirm Password <span className="text-red-600 ml-1">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => {
+                        setFormData({ ...formData, confirmPassword: e.target.value });
+                        if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
+                      }}
+                      className={`
+                        w-full px-3 py-2 pr-10 bg-white rounded-lg
+                        border border-neutral-300
+                        text-neutral-900 text-sm
+                        placeholder-neutral-500
+                        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                        transition-colors
+                        ${errors.confirmPassword ? 'border-red-600 focus:ring-red-600' : ''}
+                      `}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <span className="text-sm text-red-600">{errors.confirmPassword}</span>
+                  )}
+                </div>
+              </div>
             </form>
 
             {/* Navigation Buttons */}

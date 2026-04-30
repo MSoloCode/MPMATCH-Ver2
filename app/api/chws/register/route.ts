@@ -10,13 +10,14 @@ interface CHWRegistrationBody {
   fullName: string;
   phone: string;
   districtId: string | number;
-  facilityId?: string | number;
-  password?: string;
+  facilityId: string | number;
+  username: string;
+  password: string;
 }
 
 /**
  * POST /api/chws/register
- * Register a new Community Health Worker (CHW) in the system
+ * Register a new Community Health Worker (CHW) in the system with username and password
  * Reference: CHWs register themselves through the public registration flow
  *
  * Request body:
@@ -24,7 +25,9 @@ interface CHWRegistrationBody {
  *   "fullName": "John Doe",
  *   "phone": "0701234567" or "+256701234567",
  *   "districtId": 1,
- *   "facilityId": 5
+ *   "facilityId": 5,
+ *   "username": "johndoe",
+ *   "password": "securePassword123"
  * }
  *
  * Response on success (200):
@@ -35,6 +38,7 @@ interface CHWRegistrationBody {
  *     "userId": 123,
  *     "token": "eyJhbGciOiJIUzI1NiIs...",
  *     "phone": "+256701234567",
+ *     "fullName": "John Doe",
  *     "role": "CHW"
  *   }
  * }
@@ -45,10 +49,10 @@ interface CHWRegistrationBody {
  *   "error": "Invalid phone format. Must be 07XXXXXX or +256XXXXXXXXX"
  * }
  *
- * Response on phone already registered (409):
+ * Response on phone/username already registered (409):
  * {
  *   "success": false,
- *   "error": "Phone number is already registered"
+ *   "error": "Phone number is already registered" or "Username is already taken"
  * }
  *
  * Response on facility not found (404):
@@ -82,7 +86,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { fullName, phone, districtId, facilityId } = body;
+    const { fullName, phone, districtId, facilityId, username, password } = body;
 
     // ========================================================================
     // 2. VALIDATE INPUTS
@@ -157,19 +161,70 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate facilityId (optional - can be assigned later)
-    let facilityIdNumber: number | null = null;
-    if (facilityId) {
-      facilityIdNumber = Number(facilityId);
-      if (!Number.isInteger(facilityIdNumber) || facilityIdNumber <= 0) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'facilityId must be a positive integer if provided',
-          },
-          { status: 422 }
-        );
-      }
+    // Validate facilityId (required for CHW)
+    if (!facilityId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Facility is required',
+        },
+        { status: 422 }
+      );
+    }
+
+    const facilityIdNumber = Number(facilityId);
+    if (!Number.isInteger(facilityIdNumber) || facilityIdNumber <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'facilityId must be a positive integer',
+        },
+        { status: 422 }
+      );
+    }
+
+    // Validate username
+    if (!username || typeof username !== 'string') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'username is required and must be a string',
+        },
+        { status: 422 }
+      );
+    }
+
+    const trimmedUsername = username.trim();
+    const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
+    if (!usernameRegex.test(trimmedUsername)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Username must be 3-20 characters, start with a letter, and contain only letters, numbers, and underscore',
+        },
+        { status: 422 }
+      );
+    }
+
+    // Validate password
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'password is required and must be a string',
+        },
+        { status: 422 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Password must be at least 8 characters',
+        },
+        { status: 422 }
+      );
     }
 
     // ========================================================================
@@ -202,43 +257,41 @@ export async function POST(request: NextRequest) {
     // ========================================================================
     // 5. VERIFY FACILITY EXISTS (IF PROVIDED)
     // ========================================================================
-    if (facilityIdNumber) {
-      const facility = await db.facility.findUnique({
-        where: { id: facilityIdNumber },
-        select: { id: true, districtId: true },
-      });
+    const facility = await db.facility.findUnique({
+      where: { id: facilityIdNumber },
+      select: { id: true, districtId: true },
+    });
 
-      if (!facility) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Facility not found',
-          },
-          { status: 404 }
-        );
-      }
+    if (!facility) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Facility not found',
+        },
+        { status: 404 }
+      );
+    }
 
-      // Verify facility is in the selected district
-      if (facility.districtId !== districtIdNumber) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Selected facility does not belong to the selected district',
-          },
-          { status: 422 }
-        );
-      }
+    // Verify facility is in the selected district
+    if (facility.districtId !== districtIdNumber) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Selected facility does not belong to the selected district',
+        },
+        { status: 422 }
+      );
     }
 
     // ========================================================================
     // 6. CHECK IF PHONE ALREADY REGISTERED
     // ========================================================================
-    const existingUser = await db.user.findFirst({
+    const existingPhoneUser = await db.user.findFirst({
       where: { phone: normalizedPhone },
       select: { id: true },
     });
 
-    if (existingUser) {
+    if (existingPhoneUser) {
       return NextResponse.json(
         {
           success: false,
@@ -249,18 +302,38 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // 7. CREATE CHW USER RECORD
+    // 7. CHECK IF USERNAME ALREADY TAKEN
+    // ========================================================================
+    const existingUsername = await db.user.findUnique({
+      where: { username: trimmedUsername },
+      select: { id: true },
+    });
+
+    if (existingUsername) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Username is already taken',
+        },
+        { status: 409 }
+      );
+    }
+
+    // ========================================================================
+    // 8. HASH PASSWORD
+    // ========================================================================
+    const passwordHash = await hashPassword(password);
+
+    // ========================================================================
+    // 9. CREATE CHW USER RECORD
     // ========================================================================
     const currentTime = new Date();
-
-    // Generate a temporary password (they can set their own on first login)
-    const tempPassword = await hashPassword(Math.random().toString(36).substring(2, 10));
 
     const user = await db.user.create({
       data: {
         name: trimmedFullName,
-        username: normalizedPhone,
-        passwordHash: tempPassword,
+        username: trimmedUsername,
+        passwordHash: passwordHash,
         phone: normalizedPhone,
         role: 'CHW',
         districtId: districtIdNumber,
@@ -276,19 +349,20 @@ export async function POST(request: NextRequest) {
     });
 
     // ========================================================================
-    // 8. CREATE JWT TOKEN FOR AUTO-LOGIN
+    // 10. CREATE JWT TOKEN FOR AUTO-LOGIN
     // ========================================================================
     const token = signToken({
       userId: user.id,
+      username: trimmedUsername,
       phone: user.phone,
       role: user.role,
       districtId: districtIdNumber,
       countryId: district.countryId, // Include country for system-wide reference
-      facilityId: facilityIdNumber || undefined,
+      facilityId: facilityIdNumber,
     });
 
     // ========================================================================
-    // 9. LOG CONSENT TO CONSENT RECORD (for audit trail)
+    // 11. LOG CONSENT TO CONSENT RECORD (for audit trail)
     // ========================================================================
     try {
       await db.consentRecord.create({
@@ -305,23 +379,24 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // 10. WRITE AUDIT LOG
+    // 12. WRITE AUDIT LOG
     // ========================================================================
     try {
       await writeAuditLog({
-        actorId: null,
-        actorRole: 'PUBLIC',
+        actorId: user.id,
+        actorRole: 'CHW',
         action: 'CREATE',
         resource: 'user',
         resourceId: user.id,
         changesSummary: {
           fullName: trimmedFullName,
           phone: normalizedPhone,
+          username: trimmedUsername,
           role: 'CHW',
           districtId: districtIdNumber,
           districtName: district.name,
           facilityId: facilityIdNumber,
-          registrationType: 'CHW_SELF_REGISTRATION',
+          registrationType: 'CHW_SELF_REGISTRATION_WITH_CREDENTIALS',
         },
         ipAddress: ipAddress,
         userAgent: userAgent,
@@ -332,7 +407,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // 11. RETURN SUCCESS RESPONSE
+    // 13. RETURN SUCCESS RESPONSE
     // ========================================================================
     return NextResponse.json(
       {

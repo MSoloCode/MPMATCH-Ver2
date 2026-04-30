@@ -178,7 +178,7 @@ model Hospital {
 model Mother {
   id              Int     @id @default(autoincrement())
   fullName        String
-  phone           String  @unique
+  phone           String?  @unique
   dob             DateTime?
   village         String?
   districtId      Int

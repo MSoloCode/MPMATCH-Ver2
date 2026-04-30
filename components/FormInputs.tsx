@@ -62,7 +62,7 @@ export const PhoneInput = React.forwardRef<
     <input
       ref={ref}
       type="tel"
-      placeholder="07XXXXXX or +256XXXXXXXXX"
+      placeholder="0XXXXXXXXX"
       className={`
         px-3 py-2 bg-white rounded-lg
         border border-neutral-300
@@ -77,7 +77,7 @@ export const PhoneInput = React.forwardRef<
       {...props}
     />
     {error && <span className="text-sm text-red-600">{error}</span>}
-    <p className="text-xs text-neutral-600">Format: 07XXXXXX or +256XXXXXXXXX</p>
+    <p className="text-xs text-neutral-600">Format: 10 digits (e.g., 0770123456)</p>
   </div>
 ));
 

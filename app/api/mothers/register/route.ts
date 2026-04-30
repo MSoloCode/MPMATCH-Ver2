@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { signToken } from '@/lib/auth';
+import { signToken, hashPassword } from '@/lib/auth';
 import { writeAuditLog, extractAuditContext } from '@/lib/audit';
 
 /**
@@ -11,11 +11,13 @@ interface MotherRegistrationBody {
   phone: string;
   districtId: string | number;
   village?: string;
+  username: string;
+  password: string;
 }
 
 /**
  * POST /api/mothers/register
- * Register a new mother in the system
+ * Register a new mother in the system with username and password
  * Reference: Mothers register themselves through the public registration flow
  *
  * Request body:
@@ -23,7 +25,9 @@ interface MotherRegistrationBody {
  *   "fullName": "Jane Doe",
  *   "phone": "0701234567" or "+256701234567",
  *   "districtId": 1,
- *   "village": "Bukoto"
+ *   "village": "Bukoto",
+ *   "username": "janedoe",
+ *   "password": "securePassword123"
  * }
  *
  * Response on success (200):
@@ -32,8 +36,10 @@ interface MotherRegistrationBody {
  *   "message": "Registration successful",
  *   "data": {
  *     "motherId": 123,
+ *     "userId": 456,
  *     "token": "eyJhbGciOiJIUzI1NiIs...",
- *     "phone": "+256701234567"
+ *     "phone": "+256701234567",
+ *     "fullName": "Jane Doe"
  *   }
  * }
  *
@@ -43,10 +49,10 @@ interface MotherRegistrationBody {
  *   "error": "Invalid phone format. Must be 07XXXXXX or +256XXXXXXXXX"
  * }
  *
- * Response on phone already registered (409):
+ * Response on phone/username already registered (409):
  * {
  *   "success": false,
- *   "error": "Phone number is already registered"
+ *   "error": "Phone number is already registered" or "Username is already taken"
  * }
  *
  * Response on district not found (404):
@@ -80,7 +86,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { fullName, phone, districtId, village } = body;
+    const { fullName, phone, districtId, village, username, password } = body;
 
     // ========================================================================
     // 2. VALIDATE INPUTS
@@ -158,6 +164,50 @@ export async function POST(request: NextRequest) {
     // Validate village (optional)
     const trimmedVillage = village ? String(village).trim().substring(0, 100) : null;
 
+    // Validate username
+    if (!username || typeof username !== 'string') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'username is required and must be a string',
+        },
+        { status: 422 }
+      );
+    }
+
+    const trimmedUsername = username.trim();
+    const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
+    if (!usernameRegex.test(trimmedUsername)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Username must be 3-20 characters, start with a letter, and contain only letters, numbers, and underscore',
+        },
+        { status: 422 }
+      );
+    }
+
+    // Validate password
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'password is required and must be a string',
+        },
+        { status: 422 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Password must be at least 8 characters',
+        },
+        { status: 422 }
+      );
+    }
+
     // ========================================================================
     // 3. EXTRACT AUDIT CONTEXT
     // ========================================================================
@@ -204,7 +254,25 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // 6. GET DEFAULT FACILITY FOR DISTRICT
+    // 6. CHECK IF USERNAME ALREADY TAKEN
+    // ========================================================================
+    const existingUser = await db.user.findUnique({
+      where: { username: trimmedUsername },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Username is already taken',
+        },
+        { status: 409 }
+      );
+    }
+
+    // ========================================================================
+    // 7. GET DEFAULT FACILITY FOR DISTRICT
     // ========================================================================
     // Get first available facility in the district (or primary facility)
     const facility = await db.facility.findFirst({
@@ -224,7 +292,12 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // 7. CREATE MOTHER RECORD
+    // 8. HASH PASSWORD
+    // ========================================================================
+    const passwordHash = await hashPassword(password);
+
+    // ========================================================================
+    // 9. CREATE MOTHER RECORD & USER ACCOUNT
     // ========================================================================
     const currentTime = new Date();
 
@@ -248,19 +321,40 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create User account for login
+    const user = await db.user.create({
+      data: {
+        name: trimmedFullName,
+        username: trimmedUsername,
+        passwordHash: passwordHash,
+        phone: normalizedPhone,
+        role: 'COMMUNITY_USER',
+        isActive: true,
+        motherId: mother.id,
+        districtId: districtIdNumber,
+        countryId: district.countryId,
+      },
+      select: {
+        id: true,
+        username: true,
+      },
+    });
+
     // ========================================================================
-    // 8. CREATE JWT TOKEN FOR AUTO-LOGIN
+    // 10. CREATE JWT TOKEN FOR AUTO-LOGIN
     // ========================================================================
     const token = signToken({
+      userId: user.id,
       motherId: mother.id,
-      phone: mother.phone,
-      role: 'COMMUNITY_USER', // IMPORTANT: Role must be COMMUNITY_USER, not MOTHER
+      username: trimmedUsername,
+      phone: normalizedPhone,
+      role: 'COMMUNITY_USER',
       districtId: districtIdNumber,
       countryId: district.countryId, // Include country for potential use
     });
 
     // ========================================================================
-    // 9. LOG CONSENT TO CONSENT RECORD (for audit trail)
+    // 11. LOG CONSENT TO CONSENT RECORD (for audit trail)
     // ========================================================================
     try {
       await db.consentRecord.create({
@@ -268,6 +362,7 @@ export async function POST(request: NextRequest) {
           motherId: mother.id,
           type: 'DATA_COLLECTION',
           ipAddress: ipAddress,
+          userId: user.id,
         },
       });
     } catch (error) {
@@ -276,23 +371,24 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // 10. WRITE AUDIT LOG
+    // 12. WRITE AUDIT LOG
     // ========================================================================
     try {
       await writeAuditLog({
-        actorId: null,
-        actorRole: 'PUBLIC',
+        actorId: user.id,
+        actorRole: 'COMMUNITY_USER',
         action: 'CREATE',
         resource: 'mother',
         resourceId: mother.id,
         changesSummary: {
           fullName: trimmedFullName,
           phone: normalizedPhone,
+          username: trimmedUsername,
           districtId: districtIdNumber,
           districtName: district.name,
           village: trimmedVillage,
           consentAccepted: true,
-          registrationType: 'SELF_REGISTRATION',
+          registrationType: 'SELF_REGISTRATION_WITH_CREDENTIALS',
         },
         ipAddress: ipAddress,
         userAgent: userAgent,
@@ -303,7 +399,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================================================
-    // 11. RETURN SUCCESS RESPONSE
+    // 13. RETURN SUCCESS RESPONSE
     // ========================================================================
     return NextResponse.json(
       {
@@ -311,6 +407,7 @@ export async function POST(request: NextRequest) {
         message: 'Registration successful',
         data: {
           motherId: mother.id,
+          userId: user.id,
           token: token,
           phone: mother.phone,
           fullName: mother.fullName,

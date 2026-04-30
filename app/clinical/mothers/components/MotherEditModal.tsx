@@ -77,7 +77,7 @@ export function MotherEditModal({
   }, [isOpen]);
 
   const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^(07\d{6}|\+256[0-9]{9})$/;
+    const phoneRegex = /^0[0-9]{9}$/;
     return phoneRegex.test(phone.trim());
   };
 
