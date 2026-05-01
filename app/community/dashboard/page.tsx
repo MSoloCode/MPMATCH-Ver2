@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/Button';
 import { TextInput } from '@/components/FormInputs';
+import UserProfileDropdown from '@/components/UserProfileDropdown';
 
 interface MotherData {
   id: number;
@@ -318,21 +319,41 @@ export default function CommunityDashboard() {
   // 10. RENDER DASHBOARD
   // ========================================================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-neutral-50 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* ================================================================ */}
-        {/* HEADER SECTION */}
-        {/* ================================================================ */}
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold text-primary-800 mb-3">
-            For public/community users
-          </h1>
-          <p className="text-lg text-neutral-600 max-w-3xl mx-auto">
-            Welcome to your community dashboard. Here you can access health
-            services, connect with CHWs, and track your health information.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-neutral-50">
+      {/* Header with User Profile */}
+      <div className="bg-white border-b border-neutral-200 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-primary-800">
+                My Pregnancy Dashboard
+              </h1>
+              <p className="text-neutral-600 mt-1">
+                Track your health, appointments, and connect with care providers
+              </p>
+              {motherData?.facility && (
+                <p className="text-sm text-neutral-500 mt-2">
+                  📍 {motherData.facility.name}, {motherData.district.name}
+                </p>
+              )}
+            </div>
+            <UserProfileDropdown
+              displayName={motherData?.fullName || 'Mother'}
+              role="COMMUNITY_USER"
+              userInfo={{
+                name: motherData?.fullName,
+                phone: motherData?.phone,
+                email: undefined,
+              }}
+              onLogout={logout}
+            />
+          </div>
         </div>
+      </div>
 
+      {/* Main Content */}
+      <div className="py-12 px-4">
+      <div className="max-w-6xl mx-auto">
         {/* ================================================================ */}
         {/* MAIN CARD */}
         {/* ================================================================ */}
@@ -340,10 +361,10 @@ export default function CommunityDashboard() {
           <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-primary-800">
-                Your community dashboard
+                Your Health Information
               </h2>
               <p className="text-neutral-600 mt-1">
-                Welcome, {motherData?.fullName}
+                {motherData?.fullName || 'Loading...'}
               </p>
             </div>
             <div className="flex gap-3">
@@ -512,6 +533,7 @@ export default function CommunityDashboard() {
             </Button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -54,6 +54,7 @@ import {
   getMothersFilter,
   getAppointmentsFilter,
   getAlertsFilter,
+  ScopedUserPayload,
 } from '@/lib/dashboard-helpers';
 
 export async function GET(request: NextRequest) {
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     // 2. BUILD DASHBOARD CONTEXT
     // ========================================================================
-    const context = extractDashboardContext(user);
+    const context = extractDashboardContext(user as ScopedUserPayload);
     const visibility = getDataVisibilityRules(context.role);
 
     // ========================================================================

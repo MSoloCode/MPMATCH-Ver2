@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import DashboardLayout, { DashboardData } from '@/components/DashboardLayout';
+import DashboardHeader from '@/components/DashboardHeader';
 import { Bell, Users, AlertCircle, Calendar } from 'lucide-react';
 
 interface CHWDashboardProps {
@@ -52,24 +54,20 @@ const CHWDashboardContent = ({
   const { stats, user, recentAlerts, visibility, upcomingAppointments, highRiskMothers } = dashboardData;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Dashboard Header with User Profile */}
+      <DashboardHeader
+        title="CHW Dashboard"
+        subtitle="Community Health Worker Portal"
+        userName={user.displayName}
+        userRole={user.role}
+        facilityName={user.facilityInfo?.name}
+        onLogout={logout}
+      />
+
+      {/* Main Content */}
+      <div className="p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">CHW Dashboard</h1>
-            <p className="text-gray-600 mt-2">Welcome, {user.displayName}</p>
-            {user.facilityInfo && (
-              <p className="text-sm text-gray-500 mt-1">📍 {user.facilityInfo.name}</p>
-            )}
-          </div>
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Sign Out
-          </button>
-        </div>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -200,7 +198,9 @@ const CHWDashboardContent = ({
           </div>
         )}
       </div>
-    </div>
+      </div>
+      </div>
+
   );
 };
 
@@ -230,9 +230,37 @@ function StatCard({
 }
 
 export default function CHWDashboard() {
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/dashboard/chw');
+      if (!response.ok) throw new Error('Failed to fetch dashboard data');
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshData();
+  }, []);
+
   return (
     <DashboardLayout requiredRole="CHW">
-      <CHWDashboardContent />
+      <CHWDashboardContent 
+        dashboardData={dashboardData}
+        isLoading={isLoading}
+        error={error}
+        refreshData={refreshData}
+      />
     </DashboardLayout>
   );
 }
