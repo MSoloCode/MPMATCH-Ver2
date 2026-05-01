@@ -160,7 +160,7 @@ const Navigation: React.FC = () => {
       <div className="lg:hidden">
         {/* Mobile Header */}
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="text-lg font-bold text-accent">MPMATCH</div>
+          <div className="text-lg font-bold text-accent">Maternal and Perinatal Mortality Alleviation Through Community-to-Hospital e-Links</div>
           <button
             onClick={toggleMobileMenu}
             className="text-neutral hover:text-accent transition-colors"

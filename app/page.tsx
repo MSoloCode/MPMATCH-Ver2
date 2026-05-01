@@ -174,14 +174,14 @@ export default function Home() {
             COMMUNITY-TO-HOSPITAL e-LINKS
           </p>
 
-          {/* Branding with Icon */}
+          {/* Full System Name */}
           <div className="flex items-center gap-3">
             {/* Orange Square Icon */}
             <div className="w-6 h-6 bg-accent rounded-sm flex-shrink-0" />
 
-            {/* Abbreviation */}
+            {/* Full Name */}
             <h1 className="text-2xl md:text-3xl font-bold text-neutral">
-              MPMATCH LINKS AFRICA
+              Maternal and Perinatal Mortality Alleviation Through Community-to-Hospital e-Links
             </h1>
           </div>
         </div>
