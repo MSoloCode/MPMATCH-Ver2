@@ -42,7 +42,7 @@ interface CHW {
 
 export default function CommunityDashboard() {
   const router = useRouter();
-  const { isAuthenticated, motherId, getAuthHeader, logout, isLoading } =
+  const { isAuthenticated, motherId, token, logout, isLoading } =
     useAuth();
 
   const [motherData, setMotherData] = useState<MotherData | null>(null);
@@ -97,16 +97,17 @@ export default function CommunityDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const authHeader = getAuthHeader();
 
-      if (!authHeader) {
+      if (!token) {
         setError('Authentication failed');
         return;
       }
 
       // Fetch mother profile
       const motherResponse = await fetch('/api/mothers/me', {
-        headers: authHeader,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!motherResponse.ok) {
@@ -136,7 +137,9 @@ export default function CommunityDashboard() {
       const countResponse = await fetch(
         `/api/mothers/count?${countParams.toString()}`,
         {
-          headers: authHeader,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -161,7 +164,9 @@ export default function CommunityDashboard() {
         const chwResponse = await fetch(
           `/api/chws/nearest?${chwParams.toString()}`,
           {
-            headers: authHeader,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
@@ -187,10 +192,10 @@ export default function CommunityDashboard() {
   };
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && motherId) {
+    if (!isLoading && isAuthenticated && motherId && token) {
       fetchData();
     }
-  }, [isLoading, isAuthenticated, motherId]);
+  }, [isLoading, isAuthenticated, motherId, token]);
 
   // ========================================================================
   // 3. HANDLE REFRESH BUTTON

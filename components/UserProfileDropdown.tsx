@@ -219,23 +219,23 @@ export default function UserProfileDropdown({
             <button
               onClick={() => {
                 setIsOpen(false);
-                // TODO: Navigate to profile edit page
+                router.push('/profile');
               }}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
             >
               <User className="w-4 h-4" />
-              Edit Profile
+              View Profile
             </button>
 
             <button
               onClick={() => {
                 setIsOpen(false);
-                // TODO: Navigate to settings page
+                router.push('/profile/edit');
               }}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
             >
               <Settings className="w-4 h-4" />
-              Settings
+              Edit Profile
             </button>
 
             <button
