@@ -51,11 +51,15 @@ export function useAuth() {
   const [role, setRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   // ========================================================================
   // INITIALIZE FROM LOCALSTORAGE
   // ========================================================================
   useEffect(() => {
+    // Mark component as mounted to avoid hydration issues
+    setMounted(true);
+
     const initializeAuth = () => {
       try {
         const storedToken = localStorage.getItem('token');
@@ -68,12 +72,15 @@ export function useAuth() {
 
         if (storedToken) {
           // Must have at least token and either userId or motherId
-          if (storedUserId || storedMotherId) {
+          const hasUserId = storedUserId && storedUserId !== '0';
+          const hasMotherId = storedMotherId && parseInt(storedMotherId, 10) > 0;
+          
+          if (hasUserId || hasMotherId) {
             setToken(storedToken);
-            if (storedUserId) {
+            if (hasUserId) {
               setUserId(parseInt(storedUserId, 10));
             }
-            if (storedMotherId) {
+            if (hasMotherId) {
               setMotherId(parseInt(storedMotherId, 10));
             }
             setUsername(storedUsername);
@@ -97,7 +104,7 @@ export function useAuth() {
   // LOGIN - Store token and user details
   // ========================================================================
   const login = useCallback(
-    (
+    async (
       token: string,
       userId: number,
       username: string,
@@ -130,6 +137,7 @@ export function useAuth() {
           localStorage.removeItem('motherId');
         }
 
+        // Update state in sequence to ensure proper synchronization
         setToken(token);
         setUserId(userId);
         setUsername(username);
@@ -139,9 +147,12 @@ export function useAuth() {
         if (motherId) {
           setMotherId(motherId);
         }
+        
+        // Set authenticated state last to trigger redirect effect
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Error storing auth token:', error);
+        throw error;
       }
     },
     []

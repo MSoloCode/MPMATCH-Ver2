@@ -49,7 +49,6 @@ model Country {
   users         User[]
   districts     District[]
   facilities    Facility[]
-  mothers       Mother[]
 
   @@map("countries")
 }
@@ -196,7 +195,6 @@ model Mother {
   facility        Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
   registeredBy    User? @relation("RegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
   chw             User? @relation("CHW", fields: [chwId], references: [id], onDelete: SetNull)
-  country         Country @relation(fields: [facilityId], references: [id], onDelete: Cascade)
   communityUser   User? @relation("CommunityUser")
 
   pregnancies     Pregnancy[]

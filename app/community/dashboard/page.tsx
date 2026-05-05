@@ -54,20 +54,41 @@ export default function CommunityDashboard() {
   const [alertSubmitting, setAlertSubmitting] = useState(false);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // ========================================================================
+  // 0. MOUNTED CHECK (PREVENT HYDRATION MISMATCHES)
+  // ========================================================================
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ========================================================================
   // 1. AUTHENTICATION CHECK & ROLE VERIFICATION
   // ========================================================================
   useEffect(() => {
-    if (isLoading) return;
+    // Don't check auth until component is mounted and hook has initialized
+    if (!mounted || isLoading) {
+      return;
+    }
 
-    if (!isAuthenticated || !motherId) {
+    // Redirect if not authenticated or missing motherId
+    if (!isAuthenticated) {
       router.push('/sign-in');
       return;
     }
 
+    // If authenticated but motherId is missing, check localStorage before redirecting
+    if (!motherId) {
+      const storedMotherId = localStorage.getItem('motherId');
+      if (!storedMotherId) {
+        router.push('/sign-in');
+      }
+      return;
+    }
+
     // For COMMUNITY_USER role, this is validated server-side in the API calls
-  }, [isAuthenticated, motherId, isLoading, router]);
+  }, [isAuthenticated, motherId, isLoading, router, mounted]);
 
   // ========================================================================
   // 2. FETCH DATA ON MOUNT AND WHEN REFRESHING

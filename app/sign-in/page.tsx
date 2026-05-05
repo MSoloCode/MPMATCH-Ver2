@@ -35,20 +35,34 @@ export default function SignInPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ========================================================================
   // AUTHENTICATION CHECK - Redirect if already signed in
   // ========================================================================
   useEffect(() => {
-    if (isLoading) return;
+    // Only check after component is mounted to avoid hydration issues
+    if (!mounted || isLoading) return;
 
-    if (isAuthenticated) {
+    if (isAuthenticated && !redirecting) {
       // Get role from localStorage and route accordingly
       const role = localStorage.getItem('role');
       const dashboard = role ? getDashboardForRole(role) : '/community/dashboard';
-      router.push(dashboard || '/community/dashboard');
+      setRedirecting(true);
+      
+      // Small delay to ensure all state is synchronized before redirecting
+      const timer = setTimeout(() => {
+        router.push(dashboard || '/community/dashboard');
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, mounted, router, redirecting]);
 
   // ========================================================================
   // FORM VALIDATION
@@ -130,14 +144,25 @@ export default function SignInPage() {
 
         // Extract user data from response
         const { token, user } = data.data;
-        const { userId, username, email, phone, role } = user;
+        const { userId, username, phone, role, name, motherId } = user;
+
+        console.log('Sign-in successful:', { userId, role, motherId });
 
         // Store auth in hook (which saves to localStorage)
-        login(token, userId, username, email, phone, role);
+        // Note: email is optional and not provided by sign-in API
+        // For COMMUNITY_USER (mothers), motherId is included
+        await login(token, userId, username, null, phone, role, motherId);
 
-        // Route to appropriate dashboard based on user role
-        const dashboard = getDashboardForRole(role) || '/community/dashboard';
-        router.push(dashboard);
+        console.log('Auth state saved, redirecting...');
+
+        // Get role for dashboard routing
+        const dashboard = role ? getDashboardForRole(role) : '/community/dashboard';
+        
+        // Give a moment for state to settle, then redirect
+        setTimeout(() => {
+          router.push(dashboard || '/community/dashboard');
+          setIsSubmitting(false);
+        }, 500);
       } catch (error) {
         console.error('Sign in error:', error);
         setErrors({

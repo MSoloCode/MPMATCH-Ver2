@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
           phone: true,
           role: true,
           isActive: true,
+          motherId: true, // Include motherId for COMMUNITY_USER
         },
       });
     } catch (error) {
@@ -205,12 +206,19 @@ export async function POST(request: NextRequest) {
     // ========================================================================
     let token: string;
     try {
-      token = signToken({
+      const tokenPayload: any = {
         userId: user.id,
         username: user.username,
         phone: user.phone,
         role: user.role,
-      });
+      };
+      
+      // Include motherId for COMMUNITY_USER roles
+      if (user.role === 'COMMUNITY_USER' && user.motherId) {
+        tokenPayload.motherId = user.motherId;
+      }
+      
+      token = signToken(tokenPayload);
     } catch (error) {
       console.error('Error signing token:', error);
       return NextResponse.json(
@@ -242,23 +250,27 @@ export async function POST(request: NextRequest) {
     // ========================================================================
     // 7. RETURN SUCCESS RESPONSE WITH COOKIE
     // ========================================================================
-    const response = NextResponse.json(
-      {
-        success: true,
-        message: 'Sign in successful',
-        data: {
-          token,
-          user: {
-            userId: user.id,
-            username: user.username,
-            phone: user.phone || null,
-            role: user.role,
-            name: user.name,
-          },
+    const responseData: any = {
+      success: true,
+      message: 'Sign in successful',
+      data: {
+        token,
+        user: {
+          userId: user.id,
+          username: user.username,
+          phone: user.phone || null,
+          role: user.role,
+          name: user.name,
         },
       },
-      { status: 200 }
-    );
+    };
+    
+    // Include motherId for COMMUNITY_USER
+    if (user.role === 'COMMUNITY_USER' && user.motherId) {
+      responseData.data.user.motherId = user.motherId;
+    }
+    
+    const response = NextResponse.json(responseData, { status: 200 });
 
     // Set httpOnly cookie with JWT token
     return setTokenCookie(response, token);
