@@ -1,6 +1,6 @@
 // MPMATCH E-ANC System Prisma Schema
 // Complete antenatal care management system with mother tracking, pregnancy management, and clinical operations
-// Note: SQLite doesn't support native enums, so enum values are stored as strings and documented in comments
+// Note: String-based enums for compatibility across all databases
 
 generator client {
   provider = "prisma-client-js"
@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

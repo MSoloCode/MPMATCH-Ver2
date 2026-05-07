@@ -1,0 +1,15 @@
+// MPMATCH E-ANC System Prisma Schema - SQLite Version
+// Use this for local development only
+// Copy the content of schema.prisma and change provider to "sqlite" to use this
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL_LOCAL")
+}
+
+// Paste the rest of schema.prisma models here if switching to local SQLite development
