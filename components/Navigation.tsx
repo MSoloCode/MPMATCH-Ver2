@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, Menu, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 
 interface WorkflowStep {
   number: number;
@@ -56,6 +56,38 @@ const secondaryNavItems = [
 const Navigation: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState(false);
+  const [carouselPosition, setCarouselPosition] = useState(0);
+  const [visibleItems, setVisibleItems] = useState(5);
+
+  // Determine number of visible items based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setVisibleItems(5);
+      } else if (window.innerWidth >= 768) {
+        setVisibleItems(3);
+      } else {
+        setVisibleItems(1);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate carousel constraints
+  const maxPosition = Math.max(0, workflowSteps.length - visibleItems);
+  const canGoBack = carouselPosition > 0;
+  const canGoNext = carouselPosition < maxPosition;
+
+  const goToPreviousSlide = () => {
+    setCarouselPosition((prev) => Math.max(0, prev - 1));
+  };
+
+  const goToNextSlide = () => {
+    setCarouselPosition((prev) => Math.min(maxPosition, prev + 1));
+  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -75,6 +107,20 @@ const Navigation: React.FC = () => {
 
   const closeDropdown = () => {
     setIsMoreDropdownOpen(false);
+  };
+
+  // Reset carousel position when dropdown opens
+  const handleDropdownOpen = () => {
+    setCarouselPosition(0);
+    setIsMoreDropdownOpen(true);
+  };
+
+  const handleDropdownToggle = () => {
+    if (isMoreDropdownOpen) {
+      setIsMoreDropdownOpen(false);
+    } else {
+      handleDropdownOpen();
+    }
   };
 
   return (
@@ -97,7 +143,7 @@ const Navigation: React.FC = () => {
             {/* More Dropdown */}
             <li className="relative group">
               <button
-                onClick={toggleMoreDropdown}
+                onClick={handleDropdownToggle}
                 className="text-neutral text-sm font-medium hover:text-accent transition-colors duration-200 flex items-center gap-1 group whitespace-nowrap"
               >
                 More
@@ -111,27 +157,63 @@ const Navigation: React.FC = () => {
 
               {/* Dropdown Panel - More about the system */}
               {isMoreDropdownOpen && (
-                <div className="absolute left-0 mt-0 w-full min-w-max bg-primary-light border border-accent border-opacity-30 rounded-lg shadow-lg p-6 z-50">
+                <div className="absolute left-0 mt-0 bg-primary-light border border-accent border-opacity-30 rounded-lg shadow-lg p-6 z-50" style={{
+                  width: 'max(500px, calc(100vw - 2rem))',
+                  maxWidth: 'calc(100vw - 2rem)'
+                }}>
                   <h3 className="text-accent font-bold text-lg mb-4">
                     More about the system
                   </h3>
-                  <div className="grid grid-cols-5 gap-4">
-                    {workflowSteps.map((step) => (
+                  <div className="relative">
+                    {/* Left Arrow */}
+                    <button
+                      onClick={goToPreviousSlide}
+                      disabled={!canGoBack}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 z-10 p-2 rounded-full hover:bg-accent hover:text-primary transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Previous slide"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+
+                    {/* Carousel Container */}
+                    <div className="overflow-hidden">
                       <div
-                        key={step.number}
-                        className="bg-primary p-4 rounded-lg border border-accent border-opacity-20 hover:border-opacity-50 transition-all duration-200"
+                        className="flex gap-4 transition-transform duration-300 ease-in-out"
+                        style={{
+                          transform: `translateX(-${carouselPosition * (100 / visibleItems)}%)`
+                        }}
                       >
-                        <div className="flex items-center justify-center w-10 h-10 bg-accent text-primary rounded-full font-bold text-lg mb-3">
-                          {step.number}
-                        </div>
-                        <h4 className="text-neutral font-semibold text-sm mb-2">
-                          {step.title}
-                        </h4>
-                        <p className="text-neutral text-opacity-70 text-xs leading-relaxed">
-                          {step.description}
-                        </p>
+                        {workflowSteps.map((step) => (
+                          <div
+                            key={step.number}
+                            className="flex-shrink-0 bg-primary p-4 rounded-lg border border-accent border-opacity-20 hover:border-opacity-50 transition-all duration-200"
+                            style={{
+                              width: `calc(${100 / visibleItems}% - ${(16 * (visibleItems - 1)) / visibleItems}px)`
+                            }}
+                          >
+                            <div className="flex items-center justify-center w-10 h-10 bg-accent text-primary rounded-full font-bold text-lg mb-3">
+                              {step.number}
+                            </div>
+                            <h4 className="text-neutral font-semibold text-sm mb-2">
+                              {step.title}
+                            </h4>
+                            <p className="text-neutral text-opacity-70 text-xs leading-relaxed">
+                              {step.description}
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Right Arrow */}
+                    <button
+                      onClick={goToNextSlide}
+                      disabled={!canGoNext}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 z-10 p-2 rounded-full hover:bg-accent hover:text-primary transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Next slide"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
                   </div>
                 </div>
               )}
@@ -190,7 +272,7 @@ const Navigation: React.FC = () => {
                 {/* Mobile More Dropdown */}
                 <div className="mt-4 pt-4 border-t border-neutral border-opacity-20">
                   <button
-                    onClick={toggleMoreDropdown}
+                    onClick={handleDropdownToggle}
                     className="w-full text-neutral font-medium hover:text-accent transition-colors py-2 flex items-center justify-between"
                   >
                     More
@@ -202,32 +284,64 @@ const Navigation: React.FC = () => {
                     />
                   </button>
 
-                  {/* Mobile Workflow Steps */}
+                  {/* Mobile Workflow Steps - Carousel */}
                   {isMoreDropdownOpen && (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-4">
                       <p className="text-accent font-semibold text-sm mb-3">
                         More about the system
                       </p>
-                      {workflowSteps.map((step) => (
-                        <div
-                          key={step.number}
-                          className="bg-primary p-3 rounded-lg border border-accent border-opacity-20"
+                      <div className="relative">
+                        {/* Left Arrow Mobile */}
+                        <button
+                          onClick={goToPreviousSlide}
+                          disabled={!canGoBack}
+                          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 text-neutral hover:text-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          aria-label="Previous slide"
                         >
-                          <div className="flex items-start gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 bg-accent text-primary rounded-full font-bold text-sm flex-shrink-0">
-                              {step.number}
-                            </div>
-                            <div>
-                              <h4 className="text-neutral font-semibold text-xs">
-                                {step.title}
-                              </h4>
-                              <p className="text-neutral text-opacity-70 text-xs mt-1">
-                                {step.description}
-                              </p>
-                            </div>
+                          <ChevronLeft size={18} />
+                        </button>
+
+                        {/* Carousel Container Mobile */}
+                        <div className="overflow-hidden px-8">
+                          <div
+                            className="flex gap-3 transition-transform duration-300 ease-in-out"
+                            style={{
+                              transform: `translateX(-${carouselPosition * 100}%)`
+                            }}
+                          >
+                            {workflowSteps.map((step) => (
+                              <div
+                                key={step.number}
+                                className="flex-shrink-0 w-full bg-primary p-3 rounded-lg border border-accent border-opacity-20"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="flex items-center justify-center w-8 h-8 bg-accent text-primary rounded-full font-bold text-sm flex-shrink-0">
+                                    {step.number}
+                                  </div>
+                                  <div>
+                                    <h4 className="text-neutral font-semibold text-xs">
+                                      {step.title}
+                                    </h4>
+                                    <p className="text-neutral text-opacity-70 text-xs mt-1">
+                                      {step.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      ))}
+
+                        {/* Right Arrow Mobile */}
+                        <button
+                          onClick={goToNextSlide}
+                          disabled={!canGoNext}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 text-neutral hover:text-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          aria-label="Next slide"
+                        >
+                          <ChevronRight size={18} />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
