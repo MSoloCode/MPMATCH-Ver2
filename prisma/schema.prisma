@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -101,6 +101,7 @@ model User {
   name          String
   username      String  @unique
   passwordHash  String
+  email         String? @unique  // Email address (optional, unique if provided)
   role          String  // SYSTEM_ADMIN|HOSPITAL_ADMIN|ORG_ADMIN|DHO|DOCTOR|MIDWIFE|NURSE|CHW|AMBULANCE_MANAGER|COMMUNITY_USER
   isActive      Boolean @default(true)
   phone         String?
@@ -109,6 +110,7 @@ model User {
   countryId     Int?
   orgId         Int?
   districtId    Int?
+  profilePictureUrl String? // URL to user's profile picture
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

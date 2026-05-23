@@ -138,6 +138,7 @@ export default function ProfilePage() {
             role={user.role}
             joinDate={formattedJoinDate || undefined}
             location={user.district?.name || mother?.district?.name}
+            profilePictureUrl={user.profilePictureUrl || undefined}
             showEditButton={true}
           />
         </div>

@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/Button';
 import { TextInput } from '@/components/FormInputs';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Upload, X } from 'lucide-react';
 
 interface PersonalInfoFormProps {
   onSuccess?: () => void;
@@ -20,6 +20,7 @@ interface PersonalInfoFormProps {
 
 interface FormData {
   name: string;
+  email?: string;
   phone: string;
   fullName?: string; // For mothers
   dob?: string;
@@ -35,6 +36,7 @@ export default function PersonalInfoForm({
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
+    email: '',
     phone: '',
   });
 
@@ -43,6 +45,12 @@ export default function PersonalInfoForm({
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Image upload state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Load current user data
   useEffect(() => {
@@ -76,6 +84,7 @@ export default function PersonalInfoForm({
           const user = result.data.user;
           const newFormData: FormData = {
             name: user.name || '',
+            email: user.email || '',
             phone: user.phone || '',
           };
 
@@ -117,6 +126,13 @@ export default function PersonalInfoForm({
       newErrors.phone = 'Phone must be at least 7 characters';
     }
 
+    if (formData.email && formData.email.trim().length > 0) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = 'Invalid email format';
+      }
+    }
+
     if (role === 'COMMUNITY_USER') {
       if (!formData.fullName || formData.fullName.trim().length < 2) {
         newErrors.fullName = 'Full name must be at least 2 characters';
@@ -125,6 +141,95 @@ export default function PersonalInfoForm({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle file selection
+  const handleFileSelect = (file: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Invalid file type. Only JPG, PNG, and WebP are allowed.');
+      return;
+    }
+
+    if (file.size > maxSize) {
+      setUploadError('File size exceeds 5MB limit');
+      return;
+    }
+
+    setSelectedFile(file);
+    setUploadError(null);
+
+    // Generate preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle file input change
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  // Handle drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  // Upload profile picture
+  const handleImageUpload = async () => {
+    if (!selectedFile || !token) {
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('avatar', selectedFile);
+
+      const response = await fetch('/api/users/profile/upload-avatar', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || 'Failed to upload image');
+      }
+
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setSuccessMessage('Profile picture updated successfully!');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setUploadError(
+        error instanceof Error ? error.message : 'Failed to upload profile picture'
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Handle form submission
@@ -149,6 +254,10 @@ export default function PersonalInfoForm({
       const userUpdateData: Record<string, any> = {
         name: formData.name.trim(),
       };
+
+      if (formData.email) {
+        userUpdateData.email = formData.email.trim();
+      }
 
       if (formData.phone) {
         userUpdateData.phone = formData.phone.trim();
@@ -258,6 +367,78 @@ export default function PersonalInfoForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Profile Picture Upload */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Picture</h3>
+
+          {uploadError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{uploadError}</p>
+            </div>
+          )}
+
+          <div
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
+          >
+            {previewUrl ? (
+              <div className="space-y-4">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-24 h-24 rounded-full mx-auto object-cover"
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{selectedFile?.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {(selectedFile?.size ?? 0) / (1024 * 1024) < 1
+                      ? `${Math.round((selectedFile?.size ?? 0) / 1024)}KB`
+                      : `${((selectedFile?.size ?? 0) / (1024 * 1024)).toFixed(2)}MB`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setPreviewUrl(null);
+                  }}
+                  className="text-sm text-red-600 hover:text-red-700"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label className="cursor-pointer space-y-2">
+                <Upload className="w-8 h-8 mx-auto text-gray-400" />
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium text-blue-600 hover:text-blue-700">Click to upload</span>
+                  {' '}or drag and drop
+                </div>
+                <p className="text-xs text-gray-500">JPG, PNG or WebP (max 5MB)</p>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+
+          {selectedFile && (
+            <button
+              type="button"
+              onClick={handleImageUpload}
+              disabled={uploading}
+              className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+            >
+              {uploading ? 'Uploading...' : 'Upload Picture'}
+            </button>
+          )}
+        </div>
+
         {/* Professional Info */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h3>
@@ -286,6 +467,18 @@ export default function PersonalInfoForm({
                 if (errors.phone) setErrors({ ...errors, phone: '' });
               }}
               error={errors.phone}
+            />
+
+            <TextInput
+              label="Email Address"
+              type="email"
+              placeholder="Enter your email address"
+              value={formData.email}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value });
+                if (errors.email) setErrors({ ...errors, email: '' });
+              }}
+              error={errors.email}
             />
           </div>
         </div>

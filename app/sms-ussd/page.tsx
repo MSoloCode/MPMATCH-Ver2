@@ -28,12 +28,12 @@ export default function SmsUssdPage() {
               <MessageSquare className="text-accent" size={32} />
               <h2 className="text-2xl font-bold text-primary">SMS (Text Messages)</h2>
             </div>
-            <p className="text-neutral text-opacity-70 mb-6">
+            <p className="text-black mb-6">
               Send and receive text messages to interact with MPMATCH. Perfect for quick updates, reminders, and alerts.
             </p>
             <div className="space-y-3 mb-6 bg-accent bg-opacity-5 p-4 rounded">
               <div className="font-semibold text-primary mb-3">How it works:</div>
-              <div className="space-y-2 text-sm text-neutral">
+              <div className="space-y-2 text-sm text-black">
                 <p>• Text your message to <strong>15555</strong></p>
                 <p>• Receive SMS alerts and reminders automatically</p>
                 <p>• No internet required</p>
@@ -43,11 +43,11 @@ export default function SmsUssdPage() {
             <div className="space-y-3">
               <div className="text-sm">
                 <p className="font-semibold text-primary mb-1">📤 Supported SMS Commands:</p>
-                <p className="text-neutral text-opacity-70">Register, ANC appointments, emergency alerts, health tips, appointment reminders</p>
+                <p className="text-black">Register, ANC appointments, emergency alerts, health tips, appointment reminders</p>
               </div>
               <div className="text-sm">
                 <p className="font-semibold text-primary mb-1">💬 Message Cost:</p>
-                <p className="text-neutral text-opacity-70">Standard SMS rates apply (typically 200-500 UGX per message)</p>
+                <p className="text-black">Standard SMS rates apply (typically 200-500 UGX per message)</p>
               </div>
             </div>
           </div>
@@ -58,12 +58,12 @@ export default function SmsUssdPage() {
               <Phone className="text-secondary" size={32} />
               <h2 className="text-2xl font-bold text-primary">USSD Calls</h2>
             </div>
-            <p className="text-neutral text-opacity-70 mb-6">
+            <p className="text-black mb-6">
               Access MPMATCH with simple phone call menus. No typing required—just follow on-screen prompts.
             </p>
             <div className="space-y-3 mb-6 bg-secondary bg-opacity-5 p-4 rounded">
               <div className="font-semibold text-primary mb-3">How it works:</div>
-              <div className="space-y-2 text-sm text-neutral">
+              <div className="space-y-2 text-sm text-black">
                 <p>• Dial <strong>*155*55#</strong> from any phone</p>
                 <p>• Follow interactive menu prompts</p>
                 <p>• Select options using your phone keypad</p>
@@ -73,11 +73,11 @@ export default function SmsUssdPage() {
             <div className="space-y-3">
               <div className="text-sm">
                 <p className="font-semibold text-primary mb-1">🎯 USSD Menu Options:</p>
-                <p className="text-neutral text-opacity-70">1. Register account, 2. View appointment status, 3. Report danger signs, 4. Emergency alert, 5. Get facility info</p>
+                <p className="text-black">1. Register account, 2. View appointment status, 3. Report danger signs, 4. Emergency alert, 5. Get facility info</p>
               </div>
               <div className="text-sm">
                 <p className="font-semibold text-primary mb-1">⏱️ Session Time:</p>
-                <p className="text-neutral text-opacity-70">Each USSD session lasts 5 minutes. Expire if inactive.</p>
+                <p className="text-black">Each USSD session lasts 5 minutes. Expire if inactive.</p>
               </div>
             </div>
           </div>
@@ -88,12 +88,12 @@ export default function SmsUssdPage() {
               <Radio className="text-accent" size={32} />
               <h2 className="text-2xl font-bold text-primary">Voice IVR (IVR Calls)</h2>
             </div>
-            <p className="text-neutral text-opacity-70 mb-6">
+            <p className="text-black mb-6">
               Call the MPMATCH hotline to speak with automated voice menus or connect to a health worker.
             </p>
             <div className="space-y-3 mb-6 bg-accent bg-opacity-5 p-4 rounded">
               <div className="font-semibold text-primary mb-3">How it works:</div>
-              <div className="space-y-2 text-sm text-neutral">
+              <div className="space-y-2 text-sm text-black">
                 <p>• Call <strong>+256-700-15555</strong> (toll-free in Uganda)</p>
                 <p>• Listen to automated voice messages</p>
                 <p>• Press numbers on your keypad to select options</p>
@@ -103,11 +103,11 @@ export default function SmsUssdPage() {
             <div className="space-y-3">
               <div className="text-sm">
                 <p className="font-semibold text-primary mb-1">📞 Available Languages:</p>
-                <p className="text-neutral text-opacity-70">English, Luganda, Luo, Acholi, Teso, and others</p>
+                <p className="text-black">English, Luganda, Luo, Acholi, Teso, and others</p>
               </div>
               <div className="text-sm">
                 <p className="font-semibold text-primary mb-1">🕐 Support Hours:</p>
-                <p className="text-neutral text-opacity-70">24/7 for emergencies, 6am-10pm for general inquiries</p>
+                <p className="text-black">24/7 for emergencies, 6am-10pm for general inquiries</p>
               </div>
             </div>
           </div>
@@ -129,40 +129,40 @@ export default function SmsUssdPage() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               <tr>
-                <td className="px-6 py-4 font-semibold text-neutral">Internet Required</td>
-                <td className="px-6 py-4 text-center">❌ No</td>
-                <td className="px-6 py-4 text-center">❌ No</td>
-                <td className="px-6 py-4 text-center">❌ No</td>
+                <td className="px-6 py-4 font-semibold text-black">Internet Required</td>
+                <td className="px-6 py-4 text-center text-black">❌ No</td>
+                <td className="px-6 py-4 text-center text-black">❌ No</td>
+                <td className="px-6 py-4 text-center text-black">❌ No</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="px-6 py-4 font-semibold text-neutral">Phone Type</td>
-                <td className="px-6 py-4 text-center">Any (Basic)</td>
-                <td className="px-6 py-4 text-center">Any (Basic)</td>
-                <td className="px-6 py-4 text-center">Any (Basic)</td>
+                <td className="px-6 py-4 font-semibold text-black">Phone Type</td>
+                <td className="px-6 py-4 text-center text-black">Any (Basic)</td>
+                <td className="px-6 py-4 text-center text-black">Any (Basic)</td>
+                <td className="px-6 py-4 text-center text-black">Any (Basic)</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 font-semibold text-neutral">Response Speed</td>
-                <td className="px-6 py-4 text-center">🟢 Instant</td>
-                <td className="px-6 py-4 text-center">🟢 Instant</td>
-                <td className="px-6 py-4 text-center">🟢 Instant</td>
+                <td className="px-6 py-4 font-semibold text-black">Response Speed</td>
+                <td className="px-6 py-4 text-center text-black">🟢 Instant</td>
+                <td className="px-6 py-4 text-center text-black">🟢 Instant</td>
+                <td className="px-6 py-4 text-center text-black">🟢 Instant</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="px-6 py-4 font-semibold text-neutral">Language Support</td>
-                <td className="px-6 py-4 text-center">Limited</td>
-                <td className="px-6 py-4 text-center">Multiple</td>
-                <td className="px-6 py-4 text-center">Multiple</td>
+                <td className="px-6 py-4 font-semibold text-black">Language Support</td>
+                <td className="px-6 py-4 text-center text-black">Limited</td>
+                <td className="px-6 py-4 text-center text-black">Multiple</td>
+                <td className="px-6 py-4 text-center text-black">Multiple</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 font-semibold text-neutral">Real-time Support</td>
-                <td className="px-6 py-4 text-center">❌ No</td>
-                <td className="px-6 py-4 text-center">🟡 Limited</td>
-                <td className="px-6 py-4 text-center">✅ Yes</td>
+                <td className="px-6 py-4 font-semibold text-black">Real-time Support</td>
+                <td className="px-6 py-4 text-center text-black">❌ No</td>
+                <td className="px-6 py-4 text-center text-black">🟡 Limited</td>
+                <td className="px-6 py-4 text-center text-black">✅ Yes</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="px-6 py-4 font-semibold text-neutral">Cost</td>
-                <td className="px-6 py-4 text-center">Standard rates</td>
-                <td className="px-6 py-4 text-center">Standard rates</td>
-                <td className="px-6 py-4 text-center">Toll-free</td>
+                <td className="px-6 py-4 font-semibold text-black">Cost</td>
+                <td className="px-6 py-4 text-center text-black">Standard rates</td>
+                <td className="px-6 py-4 text-center text-black">Standard rates</td>
+                <td className="px-6 py-4 text-center text-black">Toll-free</td>
               </tr>
             </tbody>
           </table>
@@ -175,55 +175,55 @@ export default function SmsUssdPage() {
         
         <div className="grid md:grid-cols-3 gap-8">
           {/* For Mothers */}
-          <div className="p-6 border border-accent border-opacity-20 rounded-lg">
+          <div className="p-6 border border-accent border-opacity-20 rounded-lg bg-white">
             <h3 className="text-xl font-bold text-primary mb-4">👶 For Pregnant Mothers</h3>
-            <div className="space-y-4 text-sm text-neutral">
+            <div className="space-y-4 text-sm text-black">
               <div>
                 <p className="font-semibold text-accent mb-1">Step 1: Register</p>
-                <p className="text-opacity-70 text-neutral">Text <strong>REG</strong> to 15555 or dial <strong>*155*55#</strong></p>
+                <p className="text-black">Text <strong>REG</strong> to 15555 or dial <strong>*155*55#</strong></p>
               </div>
               <div>
                 <p className="font-semibold text-accent mb-1">Step 2: Provide Info</p>
-                <p className="text-opacity-70 text-neutral">Answer questions: name, phone, location, pregnancy stage</p>
+                <p className="text-black">Answer questions: name, phone, location, pregnancy stage</p>
               </div>
               <div>
                 <p className="font-semibold text-accent mb-1">Step 3: Receive Updates</p>
-                <p className="text-opacity-70 text-neutral">Get ANC reminders, health tips, and appointment notifications</p>
+                <p className="text-black">Get ANC reminders, health tips, and appointment notifications</p>
               </div>
               <div>
                 <p className="font-semibold text-accent mb-1">Step 4: Emergency Access</p>
-                <p className="text-opacity-70 text-neutral">Text <strong>SOS</strong> or press 3 in USSD for emergency alerts</p>
+                <p className="text-black">Text <strong>SOS</strong> or press 3 in USSD for emergency alerts</p>
               </div>
             </div>
           </div>
 
           {/* For CHWs */}
-          <div className="p-6 border border-secondary border-opacity-20 rounded-lg">
+          <div className="p-6 border border-secondary border-opacity-20 rounded-lg bg-white">
             <h3 className="text-xl font-bold text-primary mb-4">👥 For Community Health Workers</h3>
-            <div className="space-y-4 text-sm text-neutral">
+            <div className="space-y-4 text-sm text-black">
               <div>
                 <p className="font-semibold text-secondary mb-1">Step 1: Register</p>
-                <p className="text-opacity-70 text-neutral">Text <strong>CHW</strong> to 15555 or dial <strong>*155*55#</strong></p>
+                <p className="text-black">Text <strong>CHW</strong> to 15555 or dial <strong>*155*55#</strong></p>
               </div>
               <div>
                 <p className="font-semibold text-secondary mb-1">Step 2: Verify Identity</p>
-                <p className="text-opacity-70 text-neutral">Provide credentials and health facility affiliation</p>
+                <p className="text-black">Provide credentials and health facility affiliation</p>
               </div>
               <div>
                 <p className="font-semibold text-secondary mb-1">Step 3: Manage Cases</p>
-                <p className="text-opacity-70 text-neutral">Track assigned mothers, log visits, report complications</p>
+                <p className="text-black">Track assigned mothers, log visits, report complications</p>
               </div>
               <div>
                 <p className="font-semibold text-secondary mb-1">Step 4: Coordinate Care</p>
-                <p className="text-opacity-70 text-neutral">Send referrals, receive alerts, coordinate with facilities</p>
+                <p className="text-black">Send referrals, receive alerts, coordinate with facilities</p>
               </div>
             </div>
           </div>
 
           {/* Common Commands */}
-          <div className="p-6 border border-accent border-opacity-20 rounded-lg">
+          <div className="p-6 border border-accent border-opacity-20 rounded-lg bg-white">
             <h3 className="text-xl font-bold text-primary mb-4">⌨️ Quick SMS Commands</h3>
-            <div className="space-y-2 text-sm text-neutral">
+            <div className="space-y-2 text-sm text-black">
               <p><span className="font-semibold">REG</span> - Register as mother</p>
               <p><span className="font-semibold">CHW</span> - Register as health worker</p>
               <p><span className="font-semibold">SOS</span> - Trigger emergency alert</p>
@@ -294,7 +294,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         <HelpCircle className="text-accent flex-shrink-0 mt-1" size={20} />
         <div>
           <h3 className="font-semibold text-primary mb-2">{question}</h3>
-          <p className="text-neutral text-opacity-70 text-sm">{answer}</p>
+          <p className="text-black text-sm">{answer}</p>
         </div>
       </div>
     </div>

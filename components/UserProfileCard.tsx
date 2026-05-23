@@ -17,6 +17,7 @@ interface UserProfileCardProps {
   role?: string;
   joinDate?: string;
   location?: string;
+  profilePictureUrl?: string;
   onEditClick?: () => void;
   showEditButton?: boolean;
 }
@@ -81,6 +82,7 @@ export default function UserProfileCard({
   role,
   joinDate,
   location,
+  profilePictureUrl,
   onEditClick,
   showEditButton = true,
 }: UserProfileCardProps) {
@@ -91,6 +93,34 @@ export default function UserProfileCard({
   const displayPhone = phone || auth.phone;
   const displayEmail = email || auth.email;
   const displayRole = role || auth.role || '';
+  const displayProfilePictureUrl = profilePictureUrl;
+
+  // Get initials for fallback avatar
+  const getInitials = (fullName: string): string => {
+    return fullName
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Get role-specific color for avatar background
+  const getRoleColor = (userRole: string): string => {
+    const roleColorMap: Record<string, string> = {
+      COMMUNITY_USER: 'bg-pink-500',
+      CHW: 'bg-green-500',
+      DOCTOR: 'bg-blue-500',
+      NURSE: 'bg-purple-500',
+      MIDWIFE: 'bg-indigo-500',
+      DHO: 'bg-orange-500',
+      HOSPITAL_ADMIN: 'bg-red-500',
+      SYSTEM_ADMIN: 'bg-gray-800',
+      AMBULANCE_MANAGER: 'bg-yellow-500',
+    };
+    return roleColorMap[userRole] || 'bg-gray-500';
+  };
+
   const roleInfo = ROLE_DETAILS[displayRole] || {
     color: 'bg-gray-100 text-gray-800',
     displayName: displayRole,
@@ -109,20 +139,42 @@ export default function UserProfileCard({
     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
       {/* Header with role badge */}
       <div className="flex items-start justify-between mb-6">
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{displayName}</h2>
-          <div
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${roleInfo.color}`}
-          >
-            <Badge className="w-4 h-4" />
-            {roleInfo.displayName}
+        <div className="flex items-start gap-4 flex-1">
+          {/* Profile Picture / Avatar */}
+          <div className="flex-shrink-0">
+            {displayProfilePictureUrl ? (
+              <img
+                src={displayProfilePictureUrl}
+                alt={displayName}
+                className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+              />
+            ) : (
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg ${getRoleColor(
+                  displayRole
+                )}`}
+              >
+                {getInitials(displayName)}
+              </div>
+            )}
           </div>
-          <p className="text-xs text-gray-600 mt-2">{roleInfo.description}</p>
+
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{displayName}</h2>
+            <div
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${roleInfo.color}`}
+            >
+              <Badge className="w-4 h-4" />
+              {roleInfo.displayName}
+            </div>
+            <p className="text-xs text-gray-600 mt-2">{roleInfo.description}</p>
+          </div>
         </div>
+
         {showEditButton && (
           <button
             onClick={handleEditClick}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ml-4"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ml-4 flex-shrink-0"
           >
             <Edit className="w-4 h-4" />
             <span className="text-sm">Edit Profile</span>

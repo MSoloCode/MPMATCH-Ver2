@@ -33,9 +33,36 @@ export default function UserProfileDropdown({
   onLogout,
 }: UserProfileDropdownProps) {
   const router = useRouter();
-  const { logout, username, phone, email } = useAuth();
+  const { logout, username, phone, email, token } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch profile picture on mount
+  useEffect(() => {
+    const fetchProfilePicture = async () => {
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/users/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data?.user?.profilePictureUrl) {
+            setProfilePictureUrl(result.data.user.profilePictureUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile picture:', error);
+      }
+    };
+
+    fetchProfilePicture();
+  }, [token]);
 
   // Use provided info or fall back to auth hook
   const name = displayName || username || 'User';
@@ -123,13 +150,21 @@ export default function UserProfileDropdown({
         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
         {/* Avatar Circle */}
-        <div
-          className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${getRoleColor(
-            userRole
-          )}`}
-        >
-          {getInitials(name)}
-        </div>
+        {profilePictureUrl ? (
+          <img
+            src={profilePictureUrl}
+            alt={name}
+            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+          />
+        ) : (
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${getRoleColor(
+              userRole
+            )}`}
+          >
+            {getInitials(name)}
+          </div>
+        )}
 
         {/* Name and Role (hidden on mobile) */}
         <div className="hidden sm:block text-left">
@@ -153,13 +188,21 @@ export default function UserProfileDropdown({
           {/* Header Section */}
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${getRoleColor(
-                  userRole
-                )}`}
-              >
-                {getInitials(name)}
-              </div>
+              {profilePictureUrl ? (
+                <img
+                  src={profilePictureUrl}
+                  alt={name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${getRoleColor(
+                    userRole
+                  )}`}
+                >
+                  {getInitials(name)}
+                </div>
+              )}
               <div className="flex-1">
                 <p className="font-semibold text-gray-900">{name}</p>
                 <p className={`text-xs font-medium ${getRoleColor(userRole)}`}>

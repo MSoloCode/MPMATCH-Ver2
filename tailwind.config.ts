@@ -7,6 +7,26 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      animation: {
+        fadeUpIn: 'fadeUpIn 0.6s ease-out forwards',
+        'pulse-ring': 'pulseRing 2s infinite',
+        'pulse-dot': 'pulseDot 1.5s infinite',
+      },
+      keyframes: {
+        fadeUpIn: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulseRing: {
+          '0%': { boxShadow: '0 0 0 0 rgba(249, 115, 22, 0.7)' },
+          '70%': { boxShadow: '0 0 0 6px rgba(249, 115, 22, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(249, 115, 22, 0)' },
+        },
+        pulseDot: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.7', transform: 'scale(1.2)' },
+        },
+      },
       colors: {
         primary: {
           DEFAULT: '#1a1a2e',

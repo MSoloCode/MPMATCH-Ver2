@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         username: true,
+        email: true,
         phone: true,
         role: true,
         isActive: true,
@@ -131,8 +132,37 @@ export async function PATCH(request: NextRequest) {
       updateData.phone = body.phone ? body.phone.trim() : null;
     }
 
+    if (body.email !== undefined) {
+      if (body.email !== null && body.email !== '') {
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (typeof body.email !== 'string' || !emailRegex.test(body.email.trim())) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid email format' },
+            { status: 422 }
+          );
+        }
+
+        // Check if email is already in use by another user
+        const existingUser = await db.user.findUnique({
+          where: { email: body.email.trim() },
+        });
+
+        if (existingUser && existingUser.id !== user.userId) {
+          return NextResponse.json(
+            { success: false, error: 'Email is already in use' },
+            { status: 422 }
+          );
+        }
+
+        updateData.email = body.email.trim();
+      } else {
+        updateData.email = null;
+      }
+    }
+
     // Immutable fields check
-    const immutableFields = ['username', 'role', 'email', 'isActive', 'countryId', 'districtId', 'hospitalId', 'orgId', 'motherId'];
+    const immutableFields = ['username', 'role', 'isActive', 'countryId', 'districtId', 'hospitalId', 'orgId', 'motherId'];
     for (const field of immutableFields) {
       if (body[field] !== undefined) {
         return NextResponse.json(
@@ -158,6 +188,7 @@ export async function PATCH(request: NextRequest) {
         id: true,
         name: true,
         username: true,
+        email: true,
         phone: true,
         role: true,
         isActive: true,

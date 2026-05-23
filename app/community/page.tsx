@@ -28,29 +28,29 @@ export default function CommunityPage() {
               <Heart className="text-accent" size={32} />
               <h2 className="text-2xl font-bold text-primary">Pregnant Mothers</h2>
             </div>
-            <p className="text-neutral text-opacity-70 mb-6">
+            <p className="text-black mb-6">
               Track your pregnancy, access health information, connect with healthcare providers, and get emergency support when needed.
             </p>
             <div className="space-y-3 mb-6">
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Schedule and track antenatal care (ANC) visits</span>
+                <span className="text-black">Schedule and track antenatal care (ANC) visits</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Communicate with Community Health Workers</span>
+                <span className="text-black">Communicate with Community Health Workers</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Emergency alerts for complications</span>
+                <span className="text-black">Emergency alerts for complications</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">SMS reminders and health tips</span>
+                <span className="text-black">SMS reminders and health tips</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Find nearby healthcare facilities</span>
+                <span className="text-black">Find nearby healthcare facilities</span>
               </div>
             </div>
             <Link href="/register/mother">
@@ -64,29 +64,29 @@ export default function CommunityPage() {
               <Users className="text-secondary" size={32} />
               <h2 className="text-2xl font-bold text-primary">Community Health Workers</h2>
             </div>
-            <p className="text-neutral text-opacity-70 mb-6">
+            <p className="text-black mb-6">
               Support pregnant women in your community with better coordination, timely referrals, and follow-up care.
             </p>
             <div className="space-y-3 mb-6">
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Manage assigned pregnant women</span>
+                <span className="text-black">Manage assigned pregnant women</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Identify and respond to complications early</span>
+                <span className="text-black">Identify and respond to complications early</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Coordinate with healthcare facilities</span>
+                <span className="text-black">Coordinate with healthcare facilities</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Track follow-up care</span>
+                <span className="text-black">Track follow-up care</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckIcon />
-                <span className="text-neutral">Access training and resources</span>
+                <span className="text-black">Access training and resources</span>
               </div>
             </div>
             <Link href="/register/chw">
@@ -125,30 +125,30 @@ export default function CommunityPage() {
           <Link href="/how-it-works" className="group">
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-primary">How It Works</h3>
+                <h3 className="text-xl font-semibold text-black">How It Works</h3>
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
               </div>
-              <p className="text-neutral text-opacity-70">Learn about the 5-step maternal health workflow and system features.</p>
+              <p className="text-black">Learn about the 5-step maternal health workflow and system features.</p>
             </div>
           </Link>
 
           <Link href="/find-service" className="group">
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-primary">Find Services</h3>
+                <h3 className="text-xl font-semibold text-black">Find Services</h3>
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
               </div>
-              <p className="text-neutral text-opacity-70">Locate healthcare facilities, maternity services, and emergency care near you.</p>
+              <p className="text-black">Locate healthcare facilities, maternity services, and emergency care near you.</p>
             </div>
           </Link>
 
           <Link href="/sms-ussd" className="group">
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-primary">SMS/USSD Access</h3>
+                <h3 className="text-xl font-semibold text-black">SMS/USSD Access</h3>
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
               </div>
-              <p className="text-neutral text-opacity-70">Access MPMATCH via SMS or USSD calls without internet for basic features.</p>
+              <p className="text-black">Access MPMATCH via SMS or USSD calls without internet for basic features.</p>
             </div>
           </Link>
         </div>

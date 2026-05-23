@@ -6,8 +6,10 @@ import Link from 'next/link';
 import dynamicImport from 'next/dynamic';
 import { useState, useEffect } from 'react';
 import { MessageCircle, Hash, Phone, Shield, CheckCircle, Lock, ArrowUp } from 'lucide-react';
+import { FaTwitter, FaLinkedin, FaGithub } from 'react-icons/fa';
 import Button from '@/components/Button';
 import { FacilityListItem, EmergencyNumbers } from '@/types';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
 const HeroImage = dynamicImport(() => import('@/components/HeroImage'), { ssr: false });
 
@@ -22,6 +24,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+
+  // ============================================================================
+  // ENTRANCE ANIMATIONS (INTERSECTION OBSERVER)
+  // ============================================================================
+  const featuresRef = useIntersectionObserver({ threshold: 0.1 });
+  const emergencyRef = useIntersectionObserver({ threshold: 0.1 });
+  const securityRef = useIntersectionObserver({ threshold: 0.1 });
+  const footerRef = useIntersectionObserver({ threshold: 0.1 });
 
   // ============================================================================
   // FETCH FACILITIES ON MOUNT
@@ -164,59 +174,76 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-primary to-[#16213e] text-neutral">
-      {/* Header Section */}
-      <header className="w-full py-6 px-6 md:px-12 border-b border-neutral border-opacity-20">
-        <div className="max-w-7xl mx-auto">
-          {/* Full System Name */}
-          <p className="text-xs md:text-sm text-neutral text-opacity-70 leading-relaxed mb-2">
-            Maternal and Perinatal Mortality Alleviation Through
-            <br className="hidden sm:block" />
-            COMMUNITY-TO-HOSPITAL e-LINKS
-          </p>
-
-          {/* Full System Name */}
-          <div className="flex items-center gap-3">
-            {/* Orange Square Icon */}
-            <div className="w-6 h-6 bg-accent rounded-sm flex-shrink-0" />
-
-            {/* Full Name */}
-            <h1 className="text-2xl md:text-3xl font-bold text-neutral">
-              Maternal and Perinatal Mortality Alleviation Through Community-to-Hospital e-Links
-            </h1>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
-      <section className="w-full flex-1 py-12 md:py-20 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto">
+      <section className="relative min-h-screen w-full flex items-center justify-center py-20 px-6 md:px-12 overflow-hidden">
+        {/* Gradient overlay background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary-dark via-primary to-transparent opacity-80 z-0"></div>
+
+        <div className="relative z-10 max-w-7xl mx-auto w-full">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Content - Left/Top */}
             <div className="flex flex-col justify-center space-y-6">
-              {/* Tagline */}
-              <h2 className="text-4xl md:text-5xl font-bold leading-tight text-neutral">
+              {/* Eyebrow Label */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-accent opacity-80">
+                  Maternal Health Platform
+                </span>
+              </div>
+
+              {/* Main Heading */}
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-neutral animate-fadeUp">
                 Maternal care that follows the mother, from community to facility.
-              </h2>
+              </h1>
 
               {/* Sub-tagline */}
-              <p className="text-lg md:text-xl text-neutral text-opacity-85 leading-relaxed">
+              <p className="text-lg md:text-xl text-neutral text-opacity-85 leading-relaxed" style={{ animationDelay: '0.2s' }}>
                 Connecting communities, CHWs, clinicians, and hospitals across Africa.
               </p>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4" style={{ animationDelay: '0.4s' }}>
                 <Link href="/signup">
-                  <Button variant="primary">Get started</Button>
+                  <Button 
+                    variant="primary"
+                    className="px-8 py-3 font-semibold hover:shadow-lg transition-all duration-200 animate-fadeUp"
+                    style={{ animationDelay: '0.6s' }}
+                  >
+                    Get started
+                  </Button>
                 </Link>
-                <Link href="/learn">
-                  <Button variant="outline">Learn how it works</Button>
-                </Link>
+                <button 
+                  onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="px-8 py-3 font-semibold border-2 border-neutral text-neutral rounded-md hover:bg-neutral hover:text-primary transition-all duration-200 animate-fadeUp"
+                  style={{ animationDelay: '0.8s' }}
+                >
+                  Learn more
+                </button>
+              </div>
+
+              {/* Stat Pills */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-8 flex-wrap">
+                {[
+                  { stat: '12+', label: 'Districts covered' },
+                  { stat: '4,000+', label: 'Mothers enrolled' },
+                  { stat: '< 2 min', label: 'Emergency response' },
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-dark border-l-3 border-l-accent rounded-full text-sm animate-fadeUp"
+                    style={{ animationDelay: `${0.8 + idx * 0.2}s` }}
+                  >
+                    <span className="font-bold text-accent">{item.stat}</span>
+                    <span className="text-neutral text-opacity-80">{item.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Hero Image - Right/Bottom */}
-            <div className="w-full h-full flex items-center justify-center">
-              <HeroImage />
+            <div className="w-full h-96 lg:h-full flex items-center justify-center">
+              <div className="w-full h-full rounded-2xl border border-gray-600 overflow-hidden shadow-lg">
+                <HeroImage />
+              </div>
             </div>
           </div>
         </div>
@@ -225,8 +252,20 @@ export default function Home() {
       {/* ======================================================================= */}
       {/* CONNECTIVITY SECTION - FEATURE CARDS */}
       {/* ======================================================================= */}
-      <section className="w-full py-16 md:py-20 px-6 md:px-12 bg-primary-light">
+      <section
+        ref={featuresRef.ref}
+        className={`w-full py-20 md:py-28 px-6 md:px-12 bg-primary-light transition-all duration-600 ${
+          featuresRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
+          {/* Eyebrow Label */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest text-accent opacity-80">
+              Platform Features
+            </span>
+          </div>
+
           {/* Section Title */}
           <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-4">
             Connectivity Solutions
@@ -238,33 +277,33 @@ export default function Home() {
           {/* Feature Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Card 1: SMS Reminders */}
-            <div className="bg-primary rounded-lg p-6 border border-neutral border-opacity-10 hover:border-accent hover:border-opacity-30 transition-all duration-200">
+            <div className="card-base card-hover border-l-3 border-l-accent">
               <div className="mb-4 text-accent">
                 <MessageCircle size={40} />
               </div>
-              <h3 className="text-xl font-bold text-neutral mb-3">SMS Reminders</h3>
+              <h3 className="text-lg font-semibold text-neutral mb-3">SMS Reminders</h3>
               <p className="text-neutral text-opacity-80 text-sm leading-relaxed">
                 ANC appointment reminders, missed-visit follow-ups, targeted education messages with delivery tracking.
               </p>
             </div>
 
             {/* Card 2: USSD Flows */}
-            <div className="bg-primary rounded-lg p-6 border border-neutral border-opacity-10 hover:border-accent hover:border-opacity-30 transition-all duration-200">
+            <div className="card-base card-hover border-l-3 border-l-accent">
               <div className="mb-4 text-accent">
                 <Hash size={40} />
               </div>
-              <h3 className="text-xl font-bold text-neutral mb-3">USSD Flows</h3>
+              <h3 className="text-lg font-semibold text-neutral mb-3">USSD Flows</h3>
               <p className="text-neutral text-opacity-80 text-sm leading-relaxed">
                 Simple menus for confirmations and basic self-reports, designed for feature phones and low-cost access.
               </p>
             </div>
 
             {/* Card 3: Emergency Calling */}
-            <div className="bg-primary rounded-lg p-6 border border-neutral border-opacity-10 hover:border-accent hover:border-opacity-30 transition-all duration-200">
+            <div className="card-base card-hover border-l-3 border-l-accent">
               <div className="mb-4 text-accent">
                 <Phone size={40} />
               </div>
-              <h3 className="text-xl font-bold text-neutral mb-3">Emergency Calling</h3>
+              <h3 className="text-lg font-semibold text-neutral mb-3">Emergency Calling</h3>
               <p className="text-neutral text-opacity-80 text-sm leading-relaxed">
                 One-tap call to facility emergency line. If calling fails, platform sends emergency SMS to on-call staff with location context.
               </p>
@@ -276,8 +315,20 @@ export default function Home() {
       {/* ======================================================================= */}
       {/* EMERGENCY ALERT PANEL */}
       {/* ======================================================================= */}
-      <section className="w-full py-16 md:py-20 px-6 md:px-12">
+      <section
+        ref={emergencyRef.ref}
+        className={`w-full py-16 md:py-20 px-6 md:px-12 transition-all duration-600 ${
+          emergencyRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
+          {/* Eyebrow Label */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest text-accent opacity-80">
+              Emergency Services
+            </span>
+          </div>
+
           {/* Section Title */}
           <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-2">
             Call now + send an emergency alert
@@ -302,8 +353,11 @@ export default function Home() {
           {/* Two-Column Panel */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* LEFT COLUMN: SEND EMERGENCY ALERT FORM */}
-            <div className="bg-primary-light rounded-lg p-6 md:p-8 border border-accent border-opacity-20">
-              <h3 className="text-2xl font-bold text-neutral mb-6">Send emergency alert</h3>
+            <div className="card-base card-hover border-l-3 border-l-accent">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-3 h-3 bg-danger rounded-full animate-pulse-dot"></div>
+                <h3 className="text-2xl font-bold text-neutral">Send emergency alert</h3>
+              </div>
 
               <form onSubmit={handleSendAlert} className="space-y-6">
                 {/* Phone Number Input */}
@@ -364,20 +418,25 @@ export default function Home() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className={`w-full px-6 py-3 rounded-lg font-medium transition-all ${
+                    className={`w-full px-6 py-3 rounded-lg font-medium transition-all relative ${
                       loading
                         ? 'bg-accent bg-opacity-40 text-neutral text-opacity-50 cursor-not-allowed'
-                        : 'bg-accent text-primary hover:bg-opacity-90 active:scale-95'
+                        : 'bg-accent text-primary hover:bg-opacity-90 active:scale-95 animate-pulse-ring'
                     }`}
                   >
                     {loading ? 'Sending...' : 'Send alert'}
                   </button>
                 </div>
+
+                {/* Helper Text */}
+                <p className="text-xs text-neutral text-opacity-70 text-center pt-2">
+                  We'll notify the nearest on-call clinician immediately.
+                </p>
               </form>
             </div>
 
             {/* RIGHT COLUMN: EMERGENCY NUMBERS PANEL */}
-            <div className="bg-primary-light rounded-lg p-6 md:p-8 border border-accent border-opacity-20">
+            <div className="card-base card-hover border-l-3 border-l-accent">
               <h3 className="text-2xl font-bold text-neutral mb-6">Call emergency numbers</h3>
 
               {facilityId ? (
@@ -461,8 +520,18 @@ export default function Home() {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-center py-12">
-                  <p className="text-neutral text-opacity-60">
+                <div className="space-y-4">
+                  {/* Placeholder locked cards */}
+                  {['Emergency Line', 'Ambulance', 'On-call', 'Backup'].map((type, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-gray-700 bg-opacity-40 rounded-lg border border-neutral border-opacity-5">
+                      <div className="flex-1">
+                        <p className="text-neutral text-opacity-50 text-sm font-medium">{type}</p>
+                        <p className="text-neutral text-opacity-30 font-bold text-lg mt-1">••••••••••</p>
+                      </div>
+                      <Lock size={20} className="text-neutral text-opacity-30" />
+                    </div>
+                  ))}
+                  <p className="text-neutral text-opacity-60 text-center py-4 text-sm">
                     Select a facility and click "Load numbers" to see emergency contacts
                   </p>
                 </div>
@@ -475,10 +544,22 @@ export default function Home() {
       {/* ======================================================================= */}
       {/* SAFETY & PRIVACY SECTION */}
       {/* ======================================================================= */}
-      <section className="w-full py-16 md:py-20 px-6 md:px-12">
+      <section
+        ref={securityRef.ref}
+        className={`w-full py-20 md:py-28 px-6 md:px-12 transition-all duration-600 ${
+          securityRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
+          {/* Eyebrow Label */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest text-accent opacity-80">
+              Security & Privacy
+            </span>
+          </div>
+
           {/* Section Title */}
-          <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-2">
+          <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-4">
             Safety & Privacy — Built with clinical accountability in mind
           </h2>
           <p className="text-neutral text-opacity-80 text-lg mb-12">
@@ -488,33 +569,33 @@ export default function Home() {
           {/* Security Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Card 1: Access Controls */}
-            <div className="bg-primary-light rounded-lg p-6 border border-neutral border-opacity-10 hover:border-accent hover:border-opacity-30 transition-all duration-200">
+            <div className="card-base card-hover border-l-3 border-l-accent">
               <div className="mb-4 text-accent">
                 <Shield size={40} />
               </div>
-              <h3 className="text-xl font-bold text-neutral mb-3">Access controls</h3>
+              <h3 className="text-lg font-semibold text-neutral mb-3">Access controls</h3>
               <p className="text-neutral text-opacity-80 text-sm leading-relaxed">
                 RBAC with hospital and country scoping enforced server-side. Field-level permissions ensure users only access data they're authorized to see.
               </p>
             </div>
 
             {/* Card 2: Audit Trails */}
-            <div className="bg-primary-light rounded-lg p-6 border border-neutral border-opacity-10 hover:border-accent hover:border-opacity-30 transition-all duration-200">
+            <div className="card-base card-hover border-l-3 border-l-accent">
               <div className="mb-4 text-accent">
                 <CheckCircle size={40} />
               </div>
-              <h3 className="text-xl font-bold text-neutral mb-3">Audit trails</h3>
+              <h3 className="text-lg font-semibold text-neutral mb-3">Audit trails</h3>
               <p className="text-neutral text-opacity-80 text-sm leading-relaxed">
                 Every create/update/read action on clinical records is logged with actor, timestamp, and change details for full accountability.
               </p>
             </div>
 
             {/* Card 3: Consent Management */}
-            <div className="bg-primary-light rounded-lg p-6 border border-neutral border-opacity-10 hover:border-accent hover:border-opacity-30 transition-all duration-200">
+            <div className="card-base card-hover border-l-3 border-l-accent">
               <div className="mb-4 text-accent">
                 <Lock size={40} />
               </div>
-              <h3 className="text-xl font-bold text-neutral mb-3">Consent management</h3>
+              <h3 className="text-lg font-semibold text-neutral mb-3">Consent management</h3>
               <p className="text-neutral text-opacity-80 text-sm leading-relaxed">
                 Explicit consent captured for SMS communication, data processing, and referrals. Mothers control their data sharing preferences.
               </p>
@@ -526,7 +607,12 @@ export default function Home() {
       {/* ======================================================================= */}
       {/* FOOTER */}
       {/* ======================================================================= */}
-      <footer className="w-full bg-[#0f1419] text-neutral py-16 md:py-20 px-6 md:px-12">
+      <footer
+        ref={footerRef.ref}
+        className={`w-full bg-[#0f1419] text-neutral py-16 md:py-20 px-6 md:px-12 transition-all duration-600 ${
+          footerRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
           {/* Brand & Tagline Section */}
           <div className="mb-12 pb-12 border-b border-neutral border-opacity-10">
@@ -540,9 +626,9 @@ export default function Home() {
               </h2>
             </div>
 
-            {/* Tagline */}
+            {/* Mission Statement */}
             <p className="text-neutral text-opacity-80 text-sm md:text-base mb-6">
-              Connecting communities, CHWs, clinicians, and hospitals across Africa. Maternal care that follows the mother.
+              Saving lives through connected maternal care across Africa.
             </p>
 
             {/* Colored Dots */}
@@ -574,17 +660,17 @@ export default function Home() {
               <h3 className="text-lg font-bold text-neutral mb-4">Product</h3>
               <ul className="space-y-3">
                 <li>
-                  <a href="#features" className="text-neutral text-opacity-70 hover:text-neutral hover:text-opacity-100 transition-all text-sm">
+                  <a href="#features" className="text-neutral text-opacity-70 hover:text-accent hover:text-opacity-100 transition-colors duration-200 text-sm">
                     Features
                   </a>
                 </li>
                 <li>
-                  <a href="#workflow" className="text-neutral text-opacity-70 hover:text-neutral hover:text-opacity-100 transition-all text-sm">
+                  <a href="#workflow" className="text-neutral text-opacity-70 hover:text-accent hover:text-opacity-100 transition-colors duration-200 text-sm">
                     Workflow
                   </a>
                 </li>
                 <li>
-                  <a href="#security" className="text-neutral text-opacity-70 hover:text-neutral hover:text-opacity-100 transition-all text-sm">
+                  <a href="#security" className="text-neutral text-opacity-70 hover:text-accent hover:text-opacity-100 transition-colors duration-200 text-sm">
                     Security
                   </a>
                 </li>
@@ -596,19 +682,19 @@ export default function Home() {
               <h3 className="text-lg font-bold text-neutral mb-4">Access</h3>
               <ul className="space-y-3">
                 <li>
-                  <a href="/login" className="text-neutral text-opacity-70 hover:text-neutral hover:text-opacity-100 transition-all text-sm">
+                  <a href="/login" className="text-neutral text-opacity-70 hover:text-accent hover:text-opacity-100 transition-colors duration-200 text-sm">
                     Login
                   </a>
                 </li>
                 <li>
-                  <a href="/admin" className="text-neutral text-opacity-70 hover:text-neutral hover:text-opacity-100 transition-all text-sm">
+                  <a href="/admin" className="text-neutral text-opacity-70 hover:text-accent hover:text-opacity-100 transition-colors duration-200 text-sm">
                     Admin login
                   </a>
                 </li>
                 <li>
                   <button
                     onClick={scrollToTop}
-                    className="text-neutral text-opacity-70 hover:text-neutral hover:text-opacity-100 transition-all text-sm flex items-center gap-1"
+                    className="text-neutral text-opacity-70 hover:text-accent hover:text-opacity-100 transition-colors duration-200 text-sm flex items-center gap-1"
                   >
                     Back to top <ArrowUp size={14} />
                   </button>
@@ -634,11 +720,40 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Copyright */}
-          <div className="text-center border-t border-neutral border-opacity-10 pt-8">
+          {/* Copyright & Social Icons */}
+          <div className="border-t border-neutral border-opacity-10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-neutral text-opacity-60 text-sm">
               © 2026 MPMATCH LINKS AFRICA. All rights reserved.
             </p>
+            <div className="flex items-center gap-6">
+              <a
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral text-opacity-70 hover:text-accent transition-colors duration-200 hover:scale-110 transform"
+                aria-label="Twitter"
+              >
+                <FaTwitter size={18} />
+              </a>
+              <a
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral text-opacity-70 hover:text-accent transition-colors duration-200 hover:scale-110 transform"
+                aria-label="LinkedIn"
+              >
+                <FaLinkedin size={18} />
+              </a>
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral text-opacity-70 hover:text-accent transition-colors duration-200 hover:scale-110 transform"
+                aria-label="GitHub"
+              >
+                <FaGithub size={18} />
+              </a>
+            </div>
           </div>
         </div>
       </footer>

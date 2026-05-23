@@ -20,6 +20,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #1a1a2e;
   color: #ecf0f1;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+h1 {
+  font-weight: 700;
+}
+
+h2 {
+  font-weight: 600;
+}
+
+h3 {
+  font-weight: 500;
 }
 
 a {
@@ -48,4 +62,84 @@ button {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #d35400;
+}
+
+/* Focus ring utilities for accessibility */
+@layer components {
+  .focus-ring {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply focus-ring;
+  }
+
+  /* Card styling utilities */
+  .card-base {
+    @apply bg-primary-light rounded-lg p-6 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-lg hover:translate-y-[-2px];
+  }
+
+  /* Entrance animation utilities */
+  .entrance-hidden {
+    @apply opacity-0 translate-y-5;
+  }
+
+  .entrance-visible {
+    @apply opacity-100 translate-y-0 transition-all duration-600 ease-out;
+  }
+}
+
+/* Animation keyframes */
+@keyframes fadeUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(249, 115, 22, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  }
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+.animate-fadeUp {
+  animation: fadeUpIn 0.6s ease-out forwards;
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 2s infinite;
+}
+
+.animate-pulse-dot {
+  animation: pulseDot 1.5s infinite;
 }

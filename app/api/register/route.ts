@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
       }
     } else if (phone) {
       // Phone-based registration
-      // Validate phone format: 07XXXXXX or +256XXXXXXXXX
+      // Validate phone format: 0XXXXXXXXX or +256XXXXXXXXX
       if (typeof phone !== 'string') {
         return NextResponse.json(
           {
@@ -233,12 +233,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const phoneRegex = /^(07\d{6}|\+256[0-9]{9})$/;
+      const phoneRegex = /^(0[0-9]{9}|\+256[0-9]{9})$/;
       if (!phoneRegex.test(phone.trim())) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Invalid phone format. Must be 07XXXXXX or +256XXXXXXXXX',
+            error: 'Invalid phone format. Must be 0XXXXXXXXX or +256XXXXXXXXX (10 or 12 digits)',
           },
           { status: 422 }
         );
@@ -520,7 +520,7 @@ export async function POST(request: NextRequest) {
       const token = signToken({
         motherId: mother.id,
         phone: mother.phone,
-        role: 'MOTHER',
+        role: 'COMMUNITY_USER',
       });
 
       // Log consent to ConsentRecord for audit trail

@@ -499,6 +499,13 @@ export default function UnifiedRegisterPage() {
               Please read and accept our terms to continue
             </p>
 
+            {/* General Error */}
+            {errors.general && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{errors.general}</p>
+              </div>
+            )}
+
             {/* Terms Scrollable Box */}
             <div
               ref={termsBoxRef}
